@@ -2,7 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
-using TeamPulse.Api.Models;
+using TeamPulse.Api.Domain.Entities;
 
 namespace TeamPulse.Api.Services
 {

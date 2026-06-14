@@ -1,5 +1,5 @@
-using TeamPulse.Api.Data;
-using TeamPulse.Api.Models;
+using TeamPulse.Api.Domain.Entities;
+using TeamPulse.Api.Repositories.Interfaces;
 
 namespace TeamPulse.Api.Services
 {
@@ -12,10 +12,10 @@ namespace TeamPulse.Api.Services
             _userRepository = userRepository;
         }
 
-        public User? ValidateCredentials(string username, string password)
+        public async Task<User?> ValidateCredentialsAsync(string username, string password)
         {
-            var user = _userRepository.GetByUsername(username);
-            if (user == null || user.Password != password)
+            var user = await _userRepository.GetByUsernameAsync(username);
+            if (user == null || user.PasswordHash != password)
             {
                 return null;
             }

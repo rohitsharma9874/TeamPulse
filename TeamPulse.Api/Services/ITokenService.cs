@@ -1,4 +1,4 @@
-using TeamPulse.Api.Models;
+using TeamPulse.Api.Domain.Entities;
 
 namespace TeamPulse.Api.Services
 {

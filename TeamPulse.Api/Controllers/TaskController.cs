@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TeamPulse.Api.Data;
-using TeamPulse.Api.Models;
+using TeamPulse.Api.Domain.Entities;
+using TeamPulse.Api.Repositories.Interfaces;
 
 namespace TeamPulse.Api.Controllers
 {
@@ -18,44 +18,45 @@ namespace TeamPulse.Api.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetTasks()
+        public async Task<IActionResult> GetTasks()
         {
-            var tasks = _taskRepository.GetAll();
+            var tasks = await _taskRepository.GetAllAsync();
             return Ok(tasks);
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetTask(string id)
+        public async Task<IActionResult> GetTask(string id)
         {
-            var task = _taskRepository.GetById(id);
+            var task = await _taskRepository.GetByIdAsync(id);
             if (task == null) return NotFound();
             return Ok(task);
         }
 
         [HttpPost]
-        public IActionResult CreateTask([FromBody] TaskItem task)
+        public async Task<IActionResult> CreateTask([FromBody] TaskItem task)
         {
-            var created = _taskRepository.Add(task);
+            var created = await _taskRepository.AddAsync(task);
             return CreatedAtAction(nameof(GetTask), new { id = created.Id }, created);
         }
 
         [HttpPut("{id}")]
-        public IActionResult UpdateTask(string id, [FromBody] TaskItem task)
+        public async Task<IActionResult> UpdateTask(string id, [FromBody] TaskItem task)
         {
-            var existing = _taskRepository.GetById(id);
+            var existing = await _taskRepository.GetByIdAsync(id);
             if (existing == null) return NotFound();
 
-            var updated = _taskRepository.Update(id, task);
+            task.Id = id;
+            var updated = await _taskRepository.UpdateAsync(task);
             return Ok(updated);
         }
 
         [HttpDelete("{id}")]
-        public IActionResult DeleteTask(string id)
+        public async Task<IActionResult> DeleteTask(string id)
         {
-            var existing = _taskRepository.GetById(id);
+            var existing = await _taskRepository.GetByIdAsync(id);
             if (existing == null) return NotFound();
 
-            _taskRepository.Delete(id);
+            await _taskRepository.DeleteAsync(id);
             return NoContent();
         }
     }

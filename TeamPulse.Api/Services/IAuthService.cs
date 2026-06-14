@@ -1,9 +1,9 @@
-using TeamPulse.Api.Models;
+using TeamPulse.Api.Domain.Entities;
 
 namespace TeamPulse.Api.Services
 {
     public interface IAuthService
     {
-        User? ValidateCredentials(string username, string password);
+        Task<User?> ValidateCredentialsAsync(string username, string password);
     }
 }

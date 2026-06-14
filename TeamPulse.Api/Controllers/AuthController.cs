@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using TeamPulse.Api.Models;
 using TeamPulse.Api.Services;
 
 namespace TeamPulse.Api.Controllers
@@ -18,9 +17,9 @@ namespace TeamPulse.Api.Controllers
         }
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginRequest request)
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var user = _authService.ValidateCredentials(request.Username, request.Password);
+            var user = await _authService.ValidateCredentialsAsync(request.Username, request.Password);
             if (user == null)
             {
                 return Unauthorized(new { message = "Invalid username or password" });
