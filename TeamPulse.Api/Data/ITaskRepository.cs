@@ -7,5 +7,7 @@ namespace TeamPulse.Api.Data
         IEnumerable<TaskItem> GetAll();
         TaskItem? GetById(string id);
         TaskItem Add(TaskItem task);
+        TaskItem? Update(string id, TaskItem task);
+        bool Delete(string id);
     }
 }

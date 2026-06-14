@@ -12,12 +12,35 @@ namespace TeamPulse.Api.Data
 
         public IEnumerable<TaskItem> GetAll() => _tasks;
         public TaskItem? GetById(string id) => _tasks.FirstOrDefault(t => t.Id == id);
+        
         public TaskItem Add(TaskItem task)
         {
             task.Id = Guid.NewGuid().ToString("N");
             task.CreatedAt = DateTime.UtcNow;
             _tasks.Add(task);
             return task;
+        }
+
+        public TaskItem? Update(string id, TaskItem task)
+        {
+            var existing = _tasks.FirstOrDefault(t => t.Id == id);
+            if (existing == null) return null;
+
+            existing.Title = task.Title;
+            existing.Description = task.Description;
+            existing.Status = task.Status;
+            existing.AssigneeId = task.AssigneeId;
+            existing.DueDate = task.DueDate;
+
+            return existing;
+        }
+
+        public bool Delete(string id)
+        {
+            var task = _tasks.FirstOrDefault(t => t.Id == id);
+            if (task == null) return false;
+            _tasks.Remove(task);
+            return true;
         }
     }
 }

@@ -38,5 +38,25 @@ namespace TeamPulse.Api.Controllers
             var created = _taskRepository.Add(task);
             return CreatedAtAction(nameof(GetTask), new { id = created.Id }, created);
         }
+
+        [HttpPut("{id}")]
+        public IActionResult UpdateTask(string id, [FromBody] TaskItem task)
+        {
+            var existing = _taskRepository.GetById(id);
+            if (existing == null) return NotFound();
+
+            var updated = _taskRepository.Update(id, task);
+            return Ok(updated);
+        }
+
+        [HttpDelete("{id}")]
+        public IActionResult DeleteTask(string id)
+        {
+            var existing = _taskRepository.GetById(id);
+            if (existing == null) return NotFound();
+
+            _taskRepository.Delete(id);
+            return NoContent();
+        }
     }
 }

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KPA & Co. — Team Tracker</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header" id="sidebarLogoContainer">
+                <div class="logo-title">KPA & Co.</div>
+                <div class="logo-sub">Team Tracker</div>
+            </div>
+            <ul class="nav-links">
+                <div class="sidebar-section">Main</div>
+                <li class="active" data-view="overview"><span style="font-size:15px">⬛</span> Dashboard</li>
+                <li data-view="performance"><span style="font-size:15px">👥</span> Team Performance</li>
+                <li data-view="tasks"><span style="font-size:15px">📋</span> All Tasks</li>
+                <li data-view="workflow"><span style="font-size:15px">🗂️</span> Kanban Board</li>
+                
+                <div class="sidebar-section">Monitor</div>
+                <li data-view="deadlines"><span style="font-size:15px">📅</span> Deadlines <span class="nav-badge" id="nb-overdue">0</span></li>
+                <li data-view="alerts"><span style="font-size:15px">🔔</span> Alerts <span class="nav-badge" id="nb-alerts">0</span></li>
+                <li data-view="activity"><span style="font-size:15px">📜</span> Activity Feed</li>
+                <li data-view="team" class="admin-only"><span style="font-size:15px">👥</span> Team Directory</li>
+            </ul>
+            <div class="sidebar-user">
+                <div class="user-av" id="userSidebarAvatar">KA</div>
+                <div class="user-info">
+                    <div class="user-name" id="userSidebarName" title="Update Profile">User Name</div>
+                    <div class="user-role" id="userSidebarRole">Role</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Topbar -->
+            <header class="topbar">
+                <div>
+                    <h3 id="viewTitle">Team Dashboard</h3>
+                    <div class="topbar-subtitle" id="viewSubtitle">Live summary — work, billing & team health</div>
+                </div>
+                <div class="topbar-right">
+                    <div class="live-chip"><div class="live-dot"></div><span id="topbarClock"></span></div>
+                    <button id="themeToggle" class="btn">🌙 Theme</button>
+                    <button id="logoutBtn" class="btn btn-gold">🚪 Sign Out</button>
+                </div>
+            </header>
+
+            <!-- View: Overview -->
+            <div id="view-overview" class="view-section">
+                <!-- 8 Metric Cards -->
+                <div class="stats-grid" id="overviewMetrics">
+                    <div class="stat-card m-navy"><h3>Total Work</h3><div class="value" id="ovTotal">0</div></div>
+                    <div class="stat-card m-blue"><h3>Pending</h3><div class="value" id="ovPending">0</div></div>
+                    <div class="stat-card m-green"><h3>Completed</h3><div class="value" id="ovCompleted">0</div></div>
+                    <div class="stat-card m-red"><h3>Overdue</h3><div class="value" id="ovOverdue">0</div></div>
+                    <div class="stat-card m-gold"><h3>Billed Total</h3><div class="value" id="ovBilled">$0</div></div>
+                    <div class="stat-card m-green"><h3>Collected</h3><div class="value" id="ovCollected">$0</div></div>
+                    <div class="stat-card m-warn"><h3>Weekly Velocity</h3><div class="value" id="ovVelocity">0 tasks/wk</div></div>
+                    <div class="stat-card m-navy"><h3>Team Health</h3><div class="value" id="ovHealth">0%</div></div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="table-container">
+                        <h3>Work Distribution</h3>
+                        <canvas id="ovDonutChart"></canvas>
+                    </div>
+                    <div class="table-container">
+                        <h3>Weekly Completions (Last 6 Wks)</h3>
+                        <canvas id="ovLineChart"></canvas>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="table-container">
+                        <h3>Member Workload Snapshot</h3>
+                        <canvas id="ovBarChart"></canvas>
+                    </div>
+                    <div class="table-container">
+                        <h3>Activity Heatmap (35 Days)</h3>
+                        <div id="ovHeatmap" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 15px;">
+                            <!-- Heatmap squares injected via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <h3>Active Work Items - Top Priority</h3>
+                    <table>
+                        <thead><tr><th>Task</th><th>Assignee</th><th>Deadline</th><th>Progress</th></tr></thead>
+                        <tbody id="ovTopTasks"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- View: Performance -->
+            <div id="view-performance" class="view-section hidden">
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="table-container" style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--border-color);">
+                        <h3 style="color: white; margin-bottom: 20px;">🏆 Leaderboard (This Month)</h3>
+                        <div id="perfLeaderboard" style="display: flex; flex-direction: column; gap: 15px;"></div>
+                    </div>
+                    <div class="table-container">
+                        <h3>Billed vs Collected per Member</h3>
+                        <canvas id="perfDualBar"></canvas>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <h3>Detailed Member Profiles</h3>
+                    <div id="perfMemberCards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-top: 15px;"></div>
+                </div>
+            </div>
+
+            <!-- View: Deadlines -->
+            <div id="view-deadlines" class="view-section hidden">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="table-container" style="border-top: 4px solid var(--status-overdue);">
+                        <h3 style="color: var(--status-overdue);">⚠️ Overdue Matters</h3>
+                        <div id="deadOverdueList" style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px;"></div>
+                    </div>
+                    <div class="table-container" style="border-top: 4px solid var(--status-pending);">
+                        <h3 style="color: var(--status-pending);">⏳ Due in Next 7 Days</h3>
+                        <div id="deadUpcomingList" style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px;"></div>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <h3>Consolidated Deadline Register</h3>
+                    <table>
+                        <thead><tr><th>Deadline</th><th>Task</th><th>Assignee</th><th>Status</th></tr></thead>
+                        <tbody id="deadRegisterBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- View: Alerts -->
+            <div id="view-alerts" class="view-section hidden">
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+                    <div>
+                        <div class="table-container" style="margin-bottom: 20px; border-left: 4px solid var(--status-overdue);">
+                            <h3 style="color: var(--status-overdue);">🚨 Critical Alerts</h3>
+                            <div id="alertsCritical" style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px;"></div>
+                        </div>
+                        <div class="table-container" style="border-left: 4px solid var(--status-pending);">
+                            <h3 style="color: var(--status-pending);">⚠️ Warnings</h3>
+                            <div id="alertsWarnings" style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px;"></div>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <h3>🏥 Team Health Scorecard</h3>
+                        <div id="alertsHealth" style="margin-top: 15px; display: flex; flex-direction: column; gap: 20px;">
+                            <!-- KPIs injected via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View: Activity -->
+            <div id="view-activity" class="view-section hidden">
+                <div class="table-container">
+                    <h3>Chronological Feed</h3>
+                    <div id="activityFeedList" style="margin-top: 20px; display: flex; flex-direction: column; gap: 15px; max-height: 70vh; overflow-y: auto; padding-right: 10px;"></div>
+                </div>
+            </div>
+
+            <!-- View: Tasks -->
+            <div id="view-tasks" class="view-section hidden">
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3>Active Tasks</h3>
+                        <button class="btn btn-primary openTaskModalBtn">+ New Task</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Task Title</th>
+                                <th>Assignee</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Deadline</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="taskTableBody">
+                            <!-- Tasks injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- View: Work Flow (Kanban) -->
+            <div id="view-workflow" class="view-section hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3>Task Work Flow</h3>
+                    <button class="btn btn-primary openTaskModalBtn">+ New Task</button>
+                </div>
+                
+                <!-- Interactive Work Flow Chart -->
+                <div class="table-container" style="margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 15px;">Interactive Status Flow Chart</h3>
+                    <div class="flowchart-nodes" style="display: flex; justify-content: space-around; align-items: center; gap: 15px; padding: 10px 0; flex-wrap: wrap;">
+                        <div class="flowchart-node" id="flow-node-pending" style="display: flex; align-items: center; gap: 15px; padding: 15px 25px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; min-width: 180px;">
+                            <div class="flow-icon" style="font-size: 24px; padding: 8px; border-radius: 50%; background: rgba(245, 158, 11, 0.1); color: var(--status-pending); width: 44px; height: 44px; display: flex; justify-content: center; align-items: center;">⏳</div>
+                            <div class="flow-details">
+                                <div class="flow-label" style="font-weight: 600; font-size: 14px;">Pending</div>
+                                <div class="flow-count" id="flow-count-pending" style="font-size: 12px; color: var(--text-secondary); font-weight: bold;">0 Tasks</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">
+                            <svg width="40" height="24" viewBox="0 0 40 24">
+                                <path d="M0 12 H34 M28 6 L34 12 L28 18" fill="none" stroke="var(--text-secondary)" stroke-width="3" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <div class="flowchart-node" id="flow-node-progress" style="display: flex; align-items: center; gap: 15px; padding: 15px 25px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; min-width: 180px;">
+                            <div class="flow-icon" style="font-size: 24px; padding: 8px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); color: var(--status-inprogress); width: 44px; height: 44px; display: flex; justify-content: center; align-items: center;">⚙️</div>
+                            <div class="flow-details">
+                                <div class="flow-label" style="font-weight: 600; font-size: 14px;">In Progress</div>
+                                <div class="flow-count" id="flow-count-progress" style="font-size: 12px; color: var(--text-secondary); font-weight: bold;">0 Tasks</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">
+                            <svg width="40" height="24" viewBox="0 0 40 24">
+                                <path d="M0 12 H34 M28 6 L34 12 L28 18" fill="none" stroke="var(--text-secondary)" stroke-width="3" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <div class="flowchart-node" id="flow-node-completed" style="display: flex; align-items: center; gap: 15px; padding: 15px 25px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; min-width: 180px;">
+                            <div class="flow-icon" style="font-size: 24px; padding: 8px; border-radius: 50%; background: rgba(16, 185, 129, 0.1); color: var(--status-completed); width: 44px; height: 44px; display: flex; justify-content: center; align-items: center;">✅</div>
+                            <div class="flow-details">
+                                <div class="flow-label" style="font-weight: 600; font-size: 14px;">Completed</div>
+                                <div class="flow-count" id="flow-count-completed" style="font-size: 12px; color: var(--text-secondary); font-weight: bold;">0 Tasks</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kanban-board">
+                    <div class="kanban-column" id="kanban-pending">
+                        <div class="kanban-header">
+                            <span style="color: var(--status-pending);">Pending</span>
+                            <span class="kanban-count" id="count-pending">0</span>
+                        </div>
+                        <div class="kanban-cards"></div>
+                    </div>
+                    <div class="kanban-column" id="kanban-in-progress">
+                        <div class="kanban-header">
+                            <span style="color: var(--status-inprogress);">In Progress</span>
+                            <span class="kanban-count" id="count-in-progress">0</span>
+                        </div>
+                        <div class="kanban-cards"></div>
+                    </div>
+                    <div class="kanban-column" id="kanban-completed">
+                        <div class="kanban-header">
+                            <span style="color: var(--status-completed);">Completed</span>
+                            <span class="kanban-count" id="count-completed">0</span>
+                        </div>
+                        <div class="kanban-cards"></div>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- View: Team -->
+            <div id="view-team" class="view-section hidden">
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3>Team Directory</h3>
+                        <button class="btn btn-primary admin-only" id="openTeamModalBtn">+ Add Team Member</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Profile</th>
+                                <th>Name</th>
+                                <th>Contact Info</th>
+                                <th>Role & Dept</th>
+                                <th>Tasks Assigned</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teamTableBody">
+                            <!-- Team injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Create/Edit Task Modal -->
+    <div class="modal" id="taskModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="taskModalTitle">Create New Task</h2>
+                <button class="close-btn" id="closeTaskModal">&times;</button>
+            </div>
+            <form id="taskForm">
+                <input type="hidden" id="taskId">
+                <div class="input-group">
+                    <label>Task Title</label>
+                    <input type="text" id="taskTitle" required>
+                </div>
+                <div class="input-group">
+                    <label>Description</label>
+                    <textarea id="taskDesc" rows="3"></textarea>
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <div class="input-group" style="flex: 1;">
+                        <label>Assignee (Subordinates Only)</label>
+                        <select id="taskAssignee" required></select>
+                    </div>
+                    <div class="input-group" style="flex: 1;">
+                        <label>Priority</label>
+                        <select id="taskPriority">
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                            <option value="Urgent">Urgent</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <div class="input-group" style="flex: 1;">
+                        <label>Deadline</label>
+                        <input type="date" id="taskDeadline" required>
+                    </div>
+                    <div class="input-group" style="flex: 1;">
+                        <label>Status</label>
+                        <select id="taskStatus">
+                            <option value="pending">Pending</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <h4 style="margin-bottom: 10px; color: var(--text-secondary);">Client & Billing</h4>
+                <div style="display: flex; gap: 15px;">
+                    <div class="input-group" style="flex: 1;">
+                        <label>Client Contact Details</label>
+                        <input type="text" id="taskClientContact" placeholder="Name / Phone / Email">
+                    </div>
+                    <div class="input-group" style="flex: 1;">
+                        <label>Billing Details</label>
+                        <input type="text" id="taskBilling" placeholder="Amount / Invoice #">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <div class="input-group" style="flex: 1;">
+                        <label>Payment Status</label>
+                        <select id="taskPayment">
+                            <option value="N/A">N/A</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Paid">Paid</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="flex: 1;">
+                        <label>Remarks</label>
+                        <input type="text" id="taskRemarks">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Save Task</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Update Profile Modal -->
+    <div class="modal" id="profileModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>My Profile</h2>
+                <button class="close-btn" id="closeProfileModal">&times;</button>
+            </div>
+            <form id="profileForm">
+                <div class="input-group">
+                    <label>Full Name</label>
+                    <input type="text" id="profName" required>
+                </div>
+                <div class="input-group">
+                    <label>Department</label>
+                    <input type="text" id="profDept">
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <div class="input-group" style="flex: 1;">
+                        <label>Phone Number</label>
+                        <input type="tel" id="profPhone">
+                    </div>
+                    <div class="input-group" style="flex: 1;">
+                        <label>Email Address</label>
+                        <input type="email" id="profEmail">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Profile Photo URL</label>
+                    <input type="url" id="profPhoto" placeholder="https://example.com/photo.jpg">
+                </div>
+                <div class="input-group">
+                    <label>Change Password (leave blank to keep current)</label>
+                    <input type="password" id="profPassword">
+                </div>
+                <div class="input-group admin-only hidden" id="logoUploadSection">
+                    <label>Company Logo</label>
+                    <input type="file" id="compLogoFile" accept="image/*">
+                    <small style="color: var(--text-secondary)">Upload custom firm logo (PNG/JPG)</small>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Update Profile</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Team Member Modal (Admin Only) -->
+    <div class="modal" id="teamModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Add Team Member</h2>
+                <button class="close-btn" id="closeTeamModal">&times;</button>
+            </div>
+            <form id="teamForm">
+                <div class="input-group">
+                    <label>Full Name</label>
+                    <input type="text" id="teamName" required>
+                </div>
+                <div class="input-group">
+                    <label>Username</label>
+                    <input type="text" id="teamUsername" required>
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <div class="input-group" style="flex: 1;">
+                        <label>Phone</label>
+                        <input type="tel" id="teamPhone">
+                    </div>
+                    <div class="input-group" style="flex: 1;">
+                        <label>Email</label>
+                        <input type="email" id="teamEmail">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Profile Photo URL</label>
+                    <input type="url" id="teamPhoto" placeholder="Leave blank for auto-avatar">
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="teamPassword" required>
+                </div>
+                <div class="input-group">
+                    <label>Role</label>
+                    <select id="teamRole" required>
+                        <optgroup label="Audit Team">
+                            <option value="senior_manager_audit">Senior Manager Audit</option>
+                            <option value="manager_audit_accounts">Manager Audit & Accounts</option>
+                            <option value="associate_audit_accounts">Associate Audit & Accounts</option>
+                            <option value="audit_associate">Audit Associate</option>
+                            <option value="executive_audit_accounts">Executive Audit & Accounts</option>
+                            <option value="audit_assistant">Audit Assistant</option>
+                        </optgroup>
+                        <optgroup label="Compliance & Legal Team">
+                            <option value="senior_manager_compliance">Senior Manager Compliance & Legal</option>
+                            <option value="manager_compliance_legal">Manager Compliance & Legal</option>
+                            <option value="associate_compliance_legal">Associate Compliance & Legal</option>
+                            <option value="audit_compliance_associate">Audit Compliance Associate</option>
+                            <option value="executive_compliance_legal">Executive Compliance & Legal</option>
+                            <option value="compliance_assistant">Compliance Assistant</option>
+                        </optgroup>
+                        <optgroup label="Others">
+                            <option value="trainee">Trainee</option>
+                            <option value="admin">Admin</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Department</label>
+                    <input type="text" id="teamDept" value="Audit">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Member</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
