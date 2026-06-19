@@ -1,8 +1,8 @@
-import { Component, NgZone, OnInit, OnDestroy } from '@angular/core';
+import { Component, NgZone, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, forkJoin } from 'rxjs';
 import Chart from 'chart.js/auto';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
@@ -215,6 +215,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private ngZone: NgZone,
     private permService: PermissionService,
     private inactivity: InactivityService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -271,18 +272,30 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   private loadAll(): void {
     this.loading = true;
-    Promise.all([
-      this.api.getUsers().toPromise(),
-      this.api.getTasks().toPromise(),
-      this.api.getActivities().toPromise(),
-    ]).then(([users, tasks, activities]) => {
-      this.users      = users      ?? [];
-      this.tasks      = tasks      ?? [];
-      this.activities = activities ?? [];
-      this.loading    = false;
-      this.recompute();
-      setTimeout(() => this.renderOverviewCharts(), 100);
-    }).catch(() => { this.loading = false; });
+    forkJoin({
+      users:      this.api.getUsers(),
+      tasks:      this.api.getTasks(),
+      activities: this.api.getActivities(),
+    }).subscribe({
+      next: ({ users, tasks, activities }) => {
+        this.users      = users      ?? [];
+        this.tasks      = tasks      ?? [];
+        this.activities = activities ?? [];
+        this.loading    = false;
+        try {
+          this.recompute();
+        } catch (e) {
+          console.error('[Dashboard] recompute failed:', e);
+        }
+        this.cdr.detectChanges();
+        setTimeout(() => this.renderOverviewCharts(), 100);
+      },
+      error: (err) => {
+        console.error('[Dashboard] load failed:', err);
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   navigate(section: NavSection): void {
