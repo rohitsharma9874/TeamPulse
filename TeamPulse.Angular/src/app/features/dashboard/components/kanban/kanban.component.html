@@ -1,0 +1,74 @@
+<div class="kanban-board">
+  <div
+    *ngFor="let col of columns"
+    class="kanban-col"
+    [class.drag-over]="dragOverStatus === col.status"
+    (dragover)="onDragOver($event, col.status)"
+    (dragleave)="onDragLeave()"
+    (drop)="onDrop($event, col.status)">
+
+    <!-- Column header -->
+    <div class="col-header" [style.border-color]="col.accent">
+      <div class="col-title">
+        <span class="col-dot" [style.background]="col.accent"></span>
+        <span>{{ col.label }}</span>
+        <span class="col-count">{{ getColumnTasks(col.status).length }}</span>
+      </div>
+      <button class="col-add-btn" title="Add task" (click)="addToColumn.emit(col.status)">+</button>
+    </div>
+
+    <!-- Task cards -->
+    <div class="col-body">
+      <div
+        *ngFor="let task of getColumnTasks(col.status)"
+        class="task-card"
+        [class.overdue]="isOverdue(task)"
+        draggable="true"
+        (dragstart)="onDragStart($event, task.id)"
+        (dragend)="onDragEnd($event)">
+
+        <!-- Priority stripe -->
+        <div class="priority-stripe" [attr.data-priority]="task.priority"></div>
+
+        <div class="card-body">
+          <p class="card-title">{{ task.title }}</p>
+          <p class="card-desc" *ngIf="task.description">{{ task.description }}</p>
+
+          <div class="card-meta">
+            <span class="badge badge-priority" [attr.data-priority]="task.priority">
+              {{ task.priority }}
+            </span>
+            <span class="overdue-tag" *ngIf="isOverdue(task)">Overdue</span>
+          </div>
+
+          <div class="card-footer">
+            <div class="assignee">
+              <img [src]="getUserPhoto(task.assignee)" [alt]="getUserName(task.assignee)" />
+              <span>{{ getUserName(task.assignee) }}</span>
+            </div>
+            <div class="card-actions">
+              <span class="deadline" *ngIf="task.deadline" [class.red]="isOverdue(task)">
+                📅 {{ task.deadline | date:'dd MMM' }}
+              </span>
+              <button class="icon-btn" title="Edit" (click)="editTask.emit(task)">✏️</button>
+              <button class="icon-btn danger" title="Delete" (click)="deleteTask.emit(task.id)">🗑️</button>
+            </div>
+          </div>
+
+          <div class="billing-row" *ngIf="task.billing">
+            <span class="billing-tag">{{ task.billing }}</span>
+            <span class="badge badge-payment" [attr.data-pay]="task.paymentStatus">
+              {{ task.paymentStatus ?? 'N/A' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty column state -->
+      <div class="col-empty" *ngIf="getColumnTasks(col.status).length === 0">
+        <p>No tasks</p>
+        <button (click)="addToColumn.emit(col.status)">+ Add one</button>
+      </div>
+    </div>
+  </div>
+</div>

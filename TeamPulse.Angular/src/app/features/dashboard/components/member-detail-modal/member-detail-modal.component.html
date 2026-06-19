@@ -1,0 +1,170 @@
+<ng-container *ngIf="visible && member">
+  <div class="backdrop" (click)="close.emit()"></div>
+
+  <div class="drawer" role="dialog" aria-modal="true">
+
+    <!-- Header -->
+    <div class="drawer-header">
+      <div class="member-hero">
+        <div class="avatar-lg">
+          <img *ngIf="member.photo && !member.photo.includes('ui-avatars')" [src]="member.photo" [alt]="member.name" />
+          <span *ngIf="!member.photo || member.photo.includes('ui-avatars')" class="avatar-initials">{{ getInitials(member.name) }}</span>
+        </div>
+        <div class="hero-info">
+          <h2 class="hero-name">{{ member.name }}</h2>
+          <p class="hero-role">{{ member.designation || getRoleLabel(member.role) }}</p>
+          <p class="hero-dept" *ngIf="member.department">{{ member.department }}</p>
+          <div class="hero-badges">
+            <span class="badge-role">{{ getRoleLabel(member.role) }}</span>
+            <span class="badge-reports" *ngIf="member.reportsTo">Reports to: {{ getManagerName() }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button *ngIf="canEdit" class="btn-edit" (click)="editUser.emit(member)">✏️ Edit</button>
+        <button class="btn-close" (click)="close.emit()">✕</button>
+      </div>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <button *ngFor="let t of tabs" type="button"
+        class="tab-btn" [class.active]="activeTab === t.key"
+        (click)="activeTab = t.key">
+        {{ t.icon }} {{ t.label }}
+        <span *ngIf="t.key === 'documents' && docs.length > 0" class="tab-badge">{{ docs.length }}</span>
+      </button>
+    </div>
+
+    <div class="drawer-body">
+
+      <!-- Profile tab -->
+      <div class="tab-panel" *ngIf="activeTab === 'profile'">
+        <div class="info-grid">
+          <div class="info-row">
+            <span class="info-label">Username</span>
+            <span class="info-value">{{ member.username }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Email</span>
+            <span class="info-value">
+              <a [href]="'mailto:' + member.email" class="link">{{ member.email }}</a>
+            </span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Phone</span>
+            <span class="info-value">
+              <a *ngIf="member.phone" [href]="'tel:' + member.phone" class="link">{{ member.phone }}</a>
+              <span *ngIf="!member.phone" class="muted">—</span>
+            </span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Gender</span>
+            <span class="info-value">{{ member.gender || '—' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Date of Birth</span>
+            <span class="info-value">{{ formatDate(member.dateOfBirth) }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Join Date</span>
+            <span class="info-value">{{ formatDate(member.joinDate) }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Department</span>
+            <span class="info-value">{{ member.department || '—' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Designation</span>
+            <span class="info-value">{{ member.designation || '—' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Reports To</span>
+            <span class="info-value">{{ getManagerName() }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Address tab -->
+      <div class="tab-panel" *ngIf="activeTab === 'address'">
+        <div class="info-grid">
+          <div class="info-row full">
+            <span class="info-label">Address</span>
+            <span class="info-value">{{ member.addressLine1 || '—' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">City</span>
+            <span class="info-value">{{ member.city || '—' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">State</span>
+            <span class="info-value">{{ member.state || '—' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Pin Code</span>
+            <span class="info-value">{{ member.pinCode || '—' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Country</span>
+            <span class="info-value">{{ member.country || '—' }}</span>
+          </div>
+        </div>
+
+        <div class="map-placeholder" *ngIf="member.city || member.addressLine1">
+          <span class="map-icon">📍</span>
+          <span>{{ formatAddress(member) }}</span>
+        </div>
+      </div>
+
+      <!-- Emergency tab -->
+      <div class="tab-panel" *ngIf="activeTab === 'emergency'">
+        <div *ngIf="member.emergencyContact || member.emergencyPhone; else noEmergency">
+          <div class="emergency-card">
+            <div class="emergency-icon">🆘</div>
+            <div class="emergency-info">
+              <p class="em-name">{{ member.emergencyContact || '—' }}</p>
+              <a *ngIf="member.emergencyPhone" [href]="'tel:' + member.emergencyPhone" class="em-phone link">
+                📞 {{ member.emergencyPhone }}
+              </a>
+              <span *ngIf="!member.emergencyPhone" class="muted">No phone provided</span>
+            </div>
+          </div>
+        </div>
+        <ng-template #noEmergency>
+          <div class="empty-state">
+            <span class="empty-icon">🆘</span>
+            <p>No emergency contact on file.</p>
+          </div>
+        </ng-template>
+      </div>
+
+      <!-- Documents tab -->
+      <div class="tab-panel" *ngIf="activeTab === 'documents'">
+        <p *ngIf="loadingDocs" class="muted">Loading documents…</p>
+
+        <div *ngIf="!loadingDocs && docs.length === 0" class="empty-state">
+          <span class="empty-icon">📎</span>
+          <p>No documents uploaded yet.</p>
+        </div>
+
+        <div class="doc-list" *ngIf="docs.length > 0">
+          <div class="doc-item" *ngFor="let doc of docs">
+            <span class="doc-icon">{{ fileIcon(doc.contentType) }}</span>
+            <div class="doc-meta">
+              <p class="doc-name">{{ doc.originalName }}</p>
+              <div class="doc-sub-row">
+                <span class="doc-type-badge" [style.background]="docTypeColor(doc.documentType) + '20'" [style.color]="docTypeColor(doc.documentType)">
+                  {{ doc.documentType }}
+                </span>
+                <span class="doc-size">{{ formatBytes(doc.fileSize) }}</span>
+              </div>
+              <p class="doc-date">Uploaded {{ formatDate(doc.uploadedAt) }}</p>
+            </div>
+            <button class="doc-btn download" (click)="downloadDoc(doc)" title="Download">⬇</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</ng-container>

@@ -1,0 +1,30 @@
+<div class="login-page">
+  <div class="login-card">
+    <div class="logo">
+      <span class="logo-tp">TP</span>
+      <div class="logo-text">
+        <h1>TeamPulse</h1>
+        <p>KPA & Co. — Workforce Intelligence</p>
+      </div>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="field">
+        <label>Username</label>
+        <input formControlName="username" type="text" placeholder="Enter username" autocomplete="username" />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input formControlName="password" type="password" placeholder="Enter password" autocomplete="current-password" />
+      </div>
+      <p class="error" *ngIf="error">{{ error }}</p>
+      <div class="form-footer">
+        <a class="forgot-link" routerLink="/forgot-password">Forgot password?</a>
+      </div>
+      <button type="submit" [disabled]="loading || form.invalid">
+        {{ loading ? 'Signing in…' : 'Sign In' }}
+      </button>
+    </form>
+
+  </div>
+</div>

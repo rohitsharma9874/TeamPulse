@@ -1,0 +1,30 @@
+using Microsoft.EntityFrameworkCore;
+using TeamPulse.Application.Interfaces;
+using TeamPulse.Domain.Entities;
+using TeamPulse.Infrastructure.Data;
+
+namespace TeamPulse.Infrastructure.Repositories
+{
+    public class UserRepository : Repository<User>, IUserRepository
+    {
+        public UserRepository(TeamPulseDbContext db) : base(db) { }
+
+        public async Task<User?> GetByUsernameAsync(string username) =>
+            await _set.FirstOrDefaultAsync(u => u.Username == username);
+
+        public async Task<User?> GetByEmailAsync(string email) =>
+            await _set.FirstOrDefaultAsync(u => u.Email == email);
+
+        public async Task<User?> GetByResetTokenAsync(string token) =>
+            await _set.FirstOrDefaultAsync(u =>
+                u.PasswordResetToken == token &&
+                u.PasswordResetTokenExpiry != null &&
+                u.PasswordResetTokenExpiry > DateTime.UtcNow);
+
+        public async Task<IReadOnlyList<User>> GetByCompanyAsync(string companyId) =>
+            await _set.Where(u => u.CompanyId == companyId).ToListAsync();
+
+        public async Task<bool> UsernameExistsAsync(string username) =>
+            await _set.AnyAsync(u => u.Username == username);
+    }
+}

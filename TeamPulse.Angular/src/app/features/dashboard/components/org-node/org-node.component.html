@@ -1,0 +1,37 @@
+<div class="org-node">
+
+  <!-- Card -->
+  <div class="vnode-card" (click)="onNodeClick(node.user)">
+    <div class="vcard-avatar">
+      <img [src]="node.user.photo" [alt]="node.user.name" />
+    </div>
+    <div class="vcard-info">
+      <span class="vcard-name">{{ node.user.name }}</span>
+      <span class="vcard-role">{{ node.user.designation || roleLabels[node.user.role] }}</span>
+      <span class="vcard-dept" *ngIf="node.user.department">{{ node.user.department }}</span>
+    </div>
+    <div class="vcard-footer">
+      <span class="vcard-tasks" *ngIf="taskCount > 0">{{ taskCount }} tasks</span>
+      <span class="vcard-me" *ngIf="node.user.id === currentUserId">You</span>
+      <div class="vcard-actions" *ngIf="perms.canAddMember || perms.canRemoveMember" (click)="$event.stopPropagation()">
+        <button *ngIf="perms.canAddMember" class="vcard-btn" title="Edit" (click)="onEditClick(node.user)">✏️</button>
+        <button *ngIf="perms.canRemoveMember && node.user.id !== currentUserId" class="vcard-btn danger" title="Remove" (click)="onDeleteClick(node.user.id)">🗑️</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recursive children -->
+  <div class="vnode-children" *ngIf="node.children.length > 0">
+    <app-org-node
+      *ngFor="let child of node.children"
+      [node]="child"
+      [perms]="perms"
+      [currentUserId]="currentUserId"
+      [taskCounts]="taskCounts"
+      [onNodeClick]="onNodeClick"
+      [onEditClick]="onEditClick"
+      [onDeleteClick]="onDeleteClick">
+    </app-org-node>
+  </div>
+
+</div>

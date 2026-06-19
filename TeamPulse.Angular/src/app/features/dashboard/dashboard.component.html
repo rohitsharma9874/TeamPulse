@@ -1,0 +1,1312 @@
+<div class="shell" *ngIf="!loading; else spinner">
+
+  <!-- Mobile sidebar overlay -->
+  <div class="sidebar-overlay" *ngIf="sidebarOpen" (click)="sidebarOpen = false"></div>
+
+  <!-- ── Sidebar ───────────────────────────────────────── -->
+  <aside class="sidebar" [class.sidebar-open]="sidebarOpen">
+    <div class="sidebar-logo">
+      <span class="logo-tp">TP</span>
+      <div>
+        <p class="logo-name">TeamPulse</p>
+        <p class="logo-sub">KPA &amp; Co.</p>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <ng-container *ngFor="let group of navGroups">
+        <p class="nav-group-label">{{ group.label }}</p>
+        <ng-container *ngFor="let item of group.items">
+          <!-- Parent nav item -->
+          <button class="nav-item"
+            [class.active]="activeSection === item.key && !item.subItems"
+            [class.nav-item--parent]="!!item.subItems"
+            [class.nav-item--expanded]="item.subItems && activeSection === item.key"
+            (click)="item.subItems ? navigate(item.key) : navigate(item.key)">
+            <span class="nav-icon">{{ item.icon }}</span>
+            <span class="nav-label">{{ item.label }}</span>
+            <span class="nav-badge" *ngIf="item.badgeKey && getBadge(item.badgeKey) > 0">
+              {{ getBadge(item.badgeKey) }}
+            </span>
+            <span class="nav-chevron" *ngIf="item.subItems">
+              {{ activeSection === item.key ? '▾' : '▸' }}
+            </span>
+          </button>
+          <!-- Sub-items (shown when parent is active) -->
+          <ng-container *ngIf="item.subItems && activeSection === item.key">
+            <ng-container *ngIf="item.key === 'overview'">
+              <button *ngFor="let sub of item.subItems"
+                class="nav-sub-item"
+                [class.active]="overviewTab === sub.tab"
+                (click)="navigateOverviewTab($any(sub.tab))">
+                <span class="nav-sub-icon">{{ sub.icon }}</span>
+                <span class="nav-label">{{ sub.label }}</span>
+              </button>
+            </ng-container>
+            <ng-container *ngIf="item.key === 'tasks'">
+              <button *ngFor="let sub of item.subItems"
+                class="nav-sub-item"
+                [class.active]="tasksTab === sub.tab"
+                (click)="navigateTasksTab($any(sub.tab))">
+                <span class="nav-sub-icon">{{ sub.icon }}</span>
+                <span class="nav-label">{{ sub.label }}</span>
+              </button>
+            </ng-container>
+            <ng-container *ngIf="item.key === 'performance'">
+              <button *ngFor="let sub of item.subItems"
+                class="nav-sub-item"
+                [class.active]="perfTab === sub.tab"
+                (click)="navigatePerfTab($any(sub.tab))">
+                <span class="nav-sub-icon">{{ sub.icon }}</span>
+                <span class="nav-label">{{ sub.label }}</span>
+              </button>
+            </ng-container>
+          </ng-container>
+        </ng-container>
+      </ng-container>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sf-user">
+        <div class="sf-avatar">
+          <img [src]="currentUser?.photo" [alt]="currentUser?.name" />
+          <span class="sf-status-dot"></span>
+        </div>
+        <div class="sf-info">
+          <p class="sf-name">{{ currentUser?.name }}</p>
+          <p class="sf-role">{{ getRoleLabel(currentUser?.role ?? '') }}</p>
+        </div>
+      </div>
+      <div class="sf-actions">
+        <button class="sf-btn sf-btn--edit" (click)="profileModalVisible = true" title="Edit profile">
+          ✏️ Edit Profile
+        </button>
+        <button class="sf-btn sf-btn--signout" (click)="logout()" title="Sign out">
+          ⏻ Sign Out
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ─────────────────────────────────────────── -->
+  <div class="main-wrap">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" (click)="sidebarOpen = !sidebarOpen" aria-label="Toggle menu">☰</button>
+        <h1 class="topbar-title">{{ pageMeta[activeSection][0] }}</h1>
+        <p class="topbar-sub">{{ pageMeta[activeSection][1] }}</p>
+      </div>
+      <div class="topbar-right">
+        <div class="clock-chip">
+          <span class="live-dot"></span>
+          <span id="clock-display"></span>
+        </div>
+        <button class="btn-theme" (click)="toggleTheme()" [title]="isDark ? 'Light mode' : 'Dark mode'">
+          {{ isDark ? '☀️' : '🌙' }}
+        </button>
+
+        <!-- Notification bell (moved from sidebar) -->
+        <div class="notif-wrapper" *ngIf="perms.canViewAlerts">
+          <button class="notif-bell" (click)="toggleNotif()" [class.notif-active]="notifOpen" title="Notifications">
+            🔔
+            <span class="notif-dot" *ngIf="alertsCount > 0">{{ alertsCount }}</span>
+          </button>
+          <div class="notif-dropdown" *ngIf="notifOpen">
+            <div class="notif-header">
+              <span>Alerts</span>
+              <button class="notif-close" (click)="closeNotif()">✕</button>
+            </div>
+            <div class="notif-list">
+              <div class="notif-item notif-critical" *ngFor="let a of cachedCriticalAlerts">
+                <span class="notif-badge-dot critical"></span>{{ a }}
+              </div>
+              <div class="notif-item notif-warn" *ngFor="let a of cachedWarningAlerts">
+                <span class="notif-badge-dot warn"></span>{{ a }}
+              </div>
+              <p class="notif-empty" *ngIf="alertsCount === 0">All clear — no alerts</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </header>
+
+    <main class="main">
+
+      <!-- ── Overview ─────────────────────────────────── -->
+      <section *ngIf="activeSection === 'overview'" class="section overview-section">
+
+        <!-- ══ PULSE ════════════════════════════════════════ -->
+        <ng-container *ngIf="overviewTab === 'pulse'">
+
+          <!-- KPI summary strip -->
+          <div class="pulse-block">
+          <div class="pulse-section-label">At a Glance</div>
+          <div class="pulse-kpi-strip">
+            <div class="pulse-kpi">
+              <span class="pkpi-icon">📁</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">{{ visibleTasks.length }}</span>
+                <span class="pkpi-label">Total Matters</span>
+              </div>
+            </div>
+            <div class="pulse-kpi pkpi-green">
+              <span class="pkpi-icon">✅</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">{{ completedTasks.length }}</span>
+                <span class="pkpi-label">Completed</span>
+              </div>
+            </div>
+            <div class="pulse-kpi pkpi-amber">
+              <span class="pkpi-icon">⚡</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">{{ inProgressTasks.length }}</span>
+                <span class="pkpi-label">In Progress</span>
+              </div>
+            </div>
+            <div class="pulse-kpi" [class.pkpi-red]="overdueTasks.length > 0">
+              <span class="pkpi-icon">⏰</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">{{ overdueTasks.length }}</span>
+                <span class="pkpi-label">Overdue</span>
+              </div>
+            </div>
+            <div class="pulse-kpi"
+              [class.pkpi-green]="teamHealthScore >= 70"
+              [class.pkpi-amber]="teamHealthScore >= 40 && teamHealthScore < 70"
+              [class.pkpi-red]="teamHealthScore < 40">
+              <span class="pkpi-icon">💓</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">{{ teamHealthScore }}%</span>
+                <span class="pkpi-label">Team Health</span>
+              </div>
+            </div>
+            <div class="pulse-kpi">
+              <span class="pkpi-icon">🚀</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">{{ weeklyVelocity }}/wk</span>
+                <span class="pkpi-label">Velocity</span>
+              </div>
+            </div>
+          </div>
+          </div><!-- /pulse-block -->
+
+          <!-- Charts -->
+          <div class="pulse-block">
+          <div class="pulse-section-label">Trends</div>
+          <div class="charts-row charts-row--two">
+            <div class="chart-card">
+              <h4 class="chart-title">Work Distribution</h4>
+              <canvas id="chart-donut" height="300"></canvas>
+            </div>
+            <div class="chart-card">
+              <h4 class="chart-title">Weekly Completions (6 wks)</h4>
+              <canvas id="chart-line" height="300"></canvas>
+            </div>
+          </div>
+          </div><!-- /pulse-block -->
+        </ng-container>
+
+        <!-- ══ WORKLOAD ══════════════════════════════════════ -->
+        <ng-container *ngIf="overviewTab === 'workload'">
+
+          <!-- Team size + idle summary -->
+          <div class="pulse-kpi-strip">
+            <div class="pulse-kpi pkpi-blue">
+              <span class="pkpi-icon">👥</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">{{ users.length }}</span>
+                <span class="pkpi-label">Team Members</span>
+              </div>
+            </div>
+            <div class="pulse-kpi" [class.pkpi-amber]="idleUsersData.length > 0">
+              <span class="pkpi-icon">💤</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">{{ idleUsersData.length }}</span>
+                <span class="pkpi-label">Idle (no active tasks)</span>
+              </div>
+            </div>
+            <div class="pulse-kpi pkpi-amber">
+              <span class="pkpi-icon">⚡</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">{{ inProgressTasks.length }}</span>
+                <span class="pkpi-label">Active Tasks</span>
+              </div>
+            </div>
+            <div class="pulse-kpi pkpi-green">
+              <span class="pkpi-icon">🚀</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">{{ weeklyVelocity }}/wk</span>
+                <span class="pkpi-label">Velocity</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Idle callout — shown prominently if anyone has nothing to do -->
+          <div class="idle-callout" *ngIf="idleUsersData.length > 0">
+            <span class="idle-callout-icon">💤</span>
+            <div>
+              <p class="idle-callout-title">{{ idleUsersData.length }} member{{ idleUsersData.length > 1 ? 's have' : ' has' }} no active tasks right now</p>
+              <p class="idle-callout-names">{{ idleUserNames }}</p>
+            </div>
+          </div>
+
+          <!-- Workload bar chart -->
+          <div class="chart-card chart-card--wide" *ngIf="perms.canViewFullOverview">
+            <h4 class="chart-title">Active Workload by Member</h4>
+            <canvas id="chart-bar"></canvas>
+          </div>
+
+          <!-- Activity heatmap -->
+          <div class="heatmap-section" *ngIf="perms.canViewActivity">
+            <h4 class="chart-title">Activity Heatmap — Last 35 Days</h4>
+            <div class="heatmap-grid">
+              <div *ngFor="let day of heatmapCells" class="heatmap-cell"
+                [attr.data-level]="day.level"
+                [title]="day.date + ': ' + day.count + ' actions'">
+              </div>
+            </div>
+            <div class="heatmap-legend">
+              <span>Less</span>
+              <div class="heatmap-cell" data-level="0"></div>
+              <div class="heatmap-cell" data-level="1"></div>
+              <div class="heatmap-cell" data-level="2"></div>
+              <div class="heatmap-cell" data-level="3"></div>
+              <div class="heatmap-cell" data-level="4"></div>
+              <span>More</span>
+            </div>
+          </div>
+
+          <!-- Per-member workload table -->
+          <h3 class="sub-title">Member Workload</h3>
+          <div class="task-table-wrap">
+            <table class="task-table">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Role</th>
+                  <th>Active</th>
+                  <th>Completed</th>
+                  <th>Total</th>
+                  <th>Completion</th>
+                  <th>Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let m of memberPerfData; trackBy: trackById">
+                  <td>
+                    <div style="display:flex;align-items:center;gap:0.5rem">
+                      <img [src]="m.photo" [alt]="m.name" style="width:26px;height:26px;border-radius:50%;object-fit:cover" />
+                      {{ m.name }}
+                    </div>
+                  </td>
+                  <td>{{ getRoleLabel(m.role) }}</td>
+                  <td>{{ m.total - m.completed }}</td>
+                  <td>{{ m.completed }}</td>
+                  <td>{{ m.total }}</td>
+                  <td>
+                    <div class="progress-bar-wrap">
+                      <div class="progress-bar-fill" [style.width.%]="m.completionRate"></div>
+                      <span class="progress-bar-pct">{{ m.completionRate }}%</span>
+                    </div>
+                  </td>
+                  <td><span class="score-badge score-badge--sm" [ngClass]="getScoreClass(m.score)">{{ m.score }}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </ng-container>
+
+        <!-- ══ FINANCES ══════════════════════════════════════ -->
+        <ng-container *ngIf="overviewTab === 'finances' && perms.canViewBilling">
+
+          <!-- Finance KPI strip -->
+          <div class="pulse-kpi-strip">
+            <div class="pulse-kpi pkpi-blue">
+              <span class="pkpi-icon">📋</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">₹{{ billedTotal | number:'1.0-0' }}</span>
+                <span class="pkpi-label">Total Billed</span>
+              </div>
+            </div>
+            <div class="pulse-kpi pkpi-green">
+              <span class="pkpi-icon">✅</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">₹{{ collectedTotal | number:'1.0-0' }}</span>
+                <span class="pkpi-label">Collected</span>
+              </div>
+            </div>
+            <div class="pulse-kpi" [class.pkpi-red]="pendingBilling > 0" [class.pkpi-green]="pendingBilling === 0">
+              <span class="pkpi-icon">⏳</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">₹{{ pendingBilling | number:'1.0-0' }}</span>
+                <span class="pkpi-label">Outstanding</span>
+              </div>
+            </div>
+            <div class="pulse-kpi"
+              [class.pkpi-green]="billingRecovery >= 80"
+              [class.pkpi-amber]="billingRecovery >= 50 && billingRecovery < 80"
+              [class.pkpi-red]="billingRecovery < 50">
+              <span class="pkpi-icon">📈</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">{{ billingRecovery }}%</span>
+                <span class="pkpi-label">Recovery Rate</span>
+              </div>
+            </div>
+            <div class="pulse-kpi pkpi-amber">
+              <span class="pkpi-icon">🕐</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">{{ pendingPaymentTasks.length }}</span>
+                <span class="pkpi-label">Pending Invoices</span>
+              </div>
+            </div>
+            <div class="pulse-kpi" style="--pkpi-accent:#f59e0b">
+              <span class="pkpi-icon">💛</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">{{ partlyPaidTasks.length }}</span>
+                <span class="pkpi-label">Partly Paid</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Per-member billing table -->
+          <h3 class="sub-title">Billing by Member</h3>
+          <div class="task-table-wrap">
+            <table class="task-table">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Total Billed</th>
+                  <th>Collected</th>
+                  <th>Outstanding</th>
+                  <th>Recovery</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let m of memberPerfData; trackBy: trackById">
+                  <td>
+                    <div style="display:flex;align-items:center;gap:0.5rem">
+                      <img [src]="m.photo" [alt]="m.name" style="width:26px;height:26px;border-radius:50%;object-fit:cover" />
+                      {{ m.name }}
+                    </div>
+                  </td>
+                  <td>₹{{ m.billed | number:'1.0-0' }}</td>
+                  <td class="text-green">₹{{ m.collected | number:'1.0-0' }}</td>
+                  <td [class.text-red]="m.billed - m.collected > 0">₹{{ (m.billed - m.collected) | number:'1.0-0' }}</td>
+                  <td>
+                    <div class="progress-bar-wrap">
+                      <div class="progress-bar-fill progress-bar-fill--green"
+                        [style.width.%]="m.billed > 0 ? (m.collected / m.billed * 100) : 100"></div>
+                      <span class="progress-bar-pct">{{ getMemberRecovery(m) }}%</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr *ngIf="memberPerfData.length === 0">
+                  <td colspan="5" class="empty">No billing data available</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pending invoices list -->
+          <ng-container *ngIf="pendingPaymentTasks.length > 0">
+            <h3 class="sub-title">Open Invoices</h3>
+            <div class="task-table-wrap">
+              <table class="task-table">
+                <thead>
+                  <tr>
+                    <th>Matter</th>
+                    <th>Assignee</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Deadline</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let t of pendingPaymentTasks">
+                    <td class="task-title">{{ t.title }}</td>
+                    <td>{{ getUserName(t.assignee) }}</td>
+                    <td class="text-amber">₹{{ t.billing }}</td>
+                    <td><span class="badge badge-payment" [attr.data-pay]="t.paymentStatus">{{ t.paymentStatus }}</span></td>
+                    <td [class.text-red]="isOverdue(t)">{{ t.deadline ? (t.deadline | date:'dd MMM yy') : '—' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </ng-container>
+        </ng-container>
+
+        <!-- ══ URGENT ════════════════════════════════════════ -->
+        <ng-container *ngIf="overviewTab === 'urgent'">
+
+          <!-- Urgency KPI strip -->
+          <div class="pulse-kpi-strip">
+            <div class="pulse-kpi" [class.pkpi-red]="overdueTasks.length > 0" [class.pkpi-green]="overdueTasks.length === 0">
+              <span class="pkpi-icon">🔥</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">{{ overdueTasks.length }}</span>
+                <span class="pkpi-label">Overdue</span>
+              </div>
+            </div>
+            <div class="pulse-kpi" [class.pkpi-red]="cachedCriticalAlerts.length > 0" [class.pkpi-green]="cachedCriticalAlerts.length === 0">
+              <span class="pkpi-icon">🚨</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">{{ cachedCriticalAlerts.length }}</span>
+                <span class="pkpi-label">Critical (&gt;7d overdue)</span>
+              </div>
+            </div>
+            <div class="pulse-kpi" [class.pkpi-amber]="upcomingWeekTasks.length > 0">
+              <span class="pkpi-icon">📅</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">{{ upcomingWeekTasks.length }}</span>
+                <span class="pkpi-label">Due This Week</span>
+              </div>
+            </div>
+            <div class="pulse-kpi pkpi-amber">
+              <span class="pkpi-icon">⚠️</span>
+              <div class="pkpi-body">
+                <span class="pkpi-val">{{ topPriorityTasks.length }}</span>
+                <span class="pkpi-label">High/Urgent Priority</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Critical alerts -->
+          <ng-container *ngIf="cachedCriticalAlerts.length > 0">
+            <h3 class="sub-title urgent-title">🚨 Critical — Severely Overdue (&gt;7 days)</h3>
+            <div class="alert-list alert-list--critical">
+              <div class="alert-item" *ngFor="let a of cachedCriticalAlerts">
+                <span class="alert-dot alert-dot--critical"></span>
+                {{ a }}
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- Overdue tasks table -->
+          <ng-container *ngIf="overdueTasks.length > 0">
+            <h3 class="sub-title">All Overdue Matters</h3>
+            <div class="task-table-wrap">
+              <table class="task-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Assignee</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Deadline</th>
+                    <th>Days Overdue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let task of overdueTasks" class="overdue-row">
+                    <td class="task-title">{{ task.title }}</td>
+                    <td>{{ getUserName(task.assignee) }}</td>
+                    <td><span class="badge badge-priority" [attr.data-priority]="task.priority">{{ task.priority }}</span></td>
+                    <td><span class="badge badge-status" [attr.data-status]="task.status">{{ task.status }}</span></td>
+                    <td class="text-red">{{ task.deadline | date:'dd MMM yy' }}</td>
+                    <td class="text-red">{{ getDaysOverdue(task) }}d</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </ng-container>
+
+          <!-- Due this week -->
+          <ng-container *ngIf="upcomingWeekTasks.length > 0">
+            <h3 class="sub-title">Due This Week</h3>
+            <div class="task-table-wrap">
+              <table class="task-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Assignee</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Deadline</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let task of upcomingWeekTasks">
+                    <td class="task-title">{{ task.title }}</td>
+                    <td>{{ getUserName(task.assignee) }}</td>
+                    <td><span class="badge badge-priority" [attr.data-priority]="task.priority">{{ task.priority }}</span></td>
+                    <td><span class="badge badge-status" [attr.data-status]="task.status">{{ task.status }}</span></td>
+                    <td>{{ task.deadline | date:'dd MMM yy' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </ng-container>
+
+          <!-- Warning alerts -->
+          <ng-container *ngIf="cachedWarningAlerts.length > 0">
+            <h3 class="sub-title">⚠️ Warnings</h3>
+            <div class="alert-list alert-list--warn">
+              <div class="alert-item" *ngFor="let a of cachedWarningAlerts">
+                <span class="alert-dot alert-dot--warn"></span>
+                {{ a }}
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- All clear state -->
+          <div class="all-clear" *ngIf="overdueTasks.length === 0 && cachedCriticalAlerts.length === 0 && upcomingWeekTasks.length === 0">
+            <span class="all-clear-icon">🎉</span>
+            <p class="all-clear-title">All clear!</p>
+            <p class="all-clear-sub">No overdue tasks or urgent matters right now.</p>
+          </div>
+        </ng-container>
+
+      </section>
+
+      <!-- ── Team Performance ──────────────────────────── -->
+      <section *ngIf="activeSection === 'performance'" class="section">
+
+        <!-- Filter bar -->
+        <div class="perf-controls">
+          <div class="perf-period-tabs">
+            <button class="ppt-btn" [class.active]="perfPeriod === 'month'"   (click)="setPerfPeriod('month')">This Month</button>
+            <button class="ppt-btn" [class.active]="perfPeriod === 'quarter'" (click)="setPerfPeriod('quarter')">This Quarter</button>
+            <button class="ppt-btn" [class.active]="perfPeriod === 'all'"     (click)="setPerfPeriod('all')">All Time</button>
+          </div>
+          <select class="perf-dept-select" [ngModel]="perfDept" (ngModelChange)="setPerfDept($event)">
+            <option value="">All Departments</option>
+            <option *ngFor="let d of perfUniqueDepts" [value]="d">{{ d }}</option>
+          </select>
+        </div>
+
+        <!-- ── Leaderboard tab ─────────────────────── -->
+        <ng-container *ngIf="perfTab === 'leaderboard'">
+
+          <div class="leaderboard" *ngIf="filteredPerfData.length >= 3">
+            <div class="leader-card"
+              *ngFor="let m of filteredPerfData | slice:0:3; let i = index; trackBy: trackById"
+              [class.leader-gold]="i === 0" [class.leader-silver]="i === 1" [class.leader-bronze]="i === 2">
+              <div class="leader-rank-badge" [class.rank-gold]="i===0" [class.rank-silver]="i===1" [class.rank-bronze]="i===2">
+                {{ getMedalEmoji(i) }}
+              </div>
+              <img [src]="m.photo" [alt]="m.name" class="leader-avatar" />
+              <p class="leader-name">{{ m.name }}</p>
+              <p class="leader-role">{{ getRoleLabel(m.role) }}</p>
+              <p class="leader-dept" *ngIf="m.department">{{ m.department }}</p>
+              <div class="leader-score" [ngClass]="getScoreClass(m.score)">{{ m.score }}</div>
+              <div class="leader-progress">
+                <div class="leader-progress-bar" [style.width.%]="m.completionRate"></div>
+              </div>
+              <p class="leader-stats">{{ m.completed }}/{{ m.total }} tasks · {{ m.completionRate }}%</p>
+            </div>
+          </div>
+
+          <h3 class="sub-title">All Members — Ranked by Score</h3>
+          <div class="perf-grid">
+            <div class="perf-card" *ngFor="let m of filteredPerfData; let i = index; trackBy: trackById">
+              <span class="perf-rank">#{{ i + 1 }}</span>
+              <div class="perf-card-left">
+                <img [src]="m.photo" [alt]="m.name" class="perf-avatar" />
+                <div>
+                  <p class="perf-name">{{ m.name }}</p>
+                  <p class="perf-role">{{ getRoleLabel(m.role) }}<span *ngIf="m.department"> · {{ m.department }}</span></p>
+                </div>
+              </div>
+              <div class="perf-stats">
+                <div class="perf-stat">
+                  <span class="perf-stat-val">{{ m.completed }}/{{ m.total }}</span>
+                  <span class="perf-stat-key">Tasks Done</span>
+                </div>
+                <div class="perf-stat">
+                  <span class="perf-stat-val perf-stat-val--warn" *ngIf="m.overdue > 0">{{ m.overdue }}</span>
+                  <span class="perf-stat-val" *ngIf="m.overdue === 0">—</span>
+                  <span class="perf-stat-key">Overdue</span>
+                </div>
+                <div class="perf-stat">
+                  <span class="perf-stat-val">{{ m.completionRate }}%</span>
+                  <span class="perf-stat-key">Rate</span>
+                </div>
+              </div>
+              <div class="score-badge" [ngClass]="getScoreClass(m.score)">{{ m.score }}</div>
+            </div>
+          </div>
+
+        </ng-container>
+
+        <!-- ── Task Metrics tab ───────────────────── -->
+        <ng-container *ngIf="perfTab === 'metrics'">
+
+          <h3 class="sub-title">Completion Rate by Member</h3>
+          <div class="metrics-list">
+            <div class="metrics-row" *ngFor="let m of filteredPerfData; trackBy: trackById">
+              <div class="metrics-member">
+                <img [src]="m.photo" [alt]="m.name" class="metrics-avatar" />
+                <div>
+                  <p class="metrics-name">{{ m.name }}</p>
+                  <p class="metrics-role">{{ getRoleLabel(m.role) }}</p>
+                </div>
+              </div>
+              <div class="metrics-bar-wrap">
+                <div class="metrics-bar" [style.width.%]="m.completionRate"
+                  [class.bar-high]="m.completionRate >= 70"
+                  [class.bar-mid]="m.completionRate >= 40 && m.completionRate < 70"
+                  [class.bar-low]="m.completionRate < 40"></div>
+              </div>
+              <span class="metrics-pct">{{ m.completionRate }}%</span>
+              <span class="metrics-count">{{ m.completed }}/{{ m.total }}</span>
+            </div>
+          </div>
+
+          <h3 class="sub-title" style="margin-top:1.5rem">Overdue Tasks by Member</h3>
+          <div class="metrics-overdue-list">
+            <ng-container *ngFor="let m of filteredPerfData; trackBy: trackById">
+              <div class="metrics-overdue-row" *ngIf="m.overdue > 0">
+                <img [src]="m.photo" [alt]="m.name" class="metrics-avatar" />
+                <div class="metrics-overdue-info">
+                  <p class="metrics-name">{{ m.name }}</p>
+                  <p class="metrics-role">{{ getRoleLabel(m.role) }}</p>
+                </div>
+                <span class="overdue-pill">{{ m.overdue }} overdue</span>
+              </div>
+            </ng-container>
+            <p class="empty-state-hint" *ngIf="perfNoOverdue">
+              ✅ No overdue tasks in this period — great work!
+            </p>
+          </div>
+
+        </ng-container>
+
+        <!-- ── Billing tab ────────────────────────── -->
+        <ng-container *ngIf="perfTab === 'billing'">
+
+          <div class="chart-card chart-card--wide">
+            <h4 class="chart-title">Billed vs Collected — Top 5 Members (₹)</h4>
+            <canvas id="chart-dual-bar" height="180"></canvas>
+          </div>
+
+          <h3 class="sub-title">Billing Breakdown</h3>
+          <div class="perf-grid">
+            <div class="perf-card" *ngFor="let m of filteredPerfData; trackBy: trackById">
+              <div class="perf-card-left">
+                <img [src]="m.photo" [alt]="m.name" class="perf-avatar" />
+                <div>
+                  <p class="perf-name">{{ m.name }}</p>
+                  <p class="perf-role">{{ getRoleLabel(m.role) }}</p>
+                </div>
+              </div>
+              <div class="perf-stats">
+                <div class="perf-stat">
+                  <span class="perf-stat-val">₹{{ m.billed | number:'1.0-0' }}</span>
+                  <span class="perf-stat-key">Billed</span>
+                </div>
+                <div class="perf-stat">
+                  <span class="perf-stat-val">₹{{ m.collected | number:'1.0-0' }}</span>
+                  <span class="perf-stat-key">Collected</span>
+                </div>
+                <div class="perf-stat">
+                  <span class="perf-stat-val">{{ m.billed > 0 ? ((m.collected / m.billed) * 100 | number:'1.0-0') : '—' }}%</span>
+                  <span class="perf-stat-key">Recovery</span>
+                </div>
+              </div>
+              <div class="score-badge" [ngClass]="getScoreClass(m.score)">{{ m.score }}</div>
+            </div>
+          </div>
+
+        </ng-container>
+
+      </section>
+
+      <!-- ── Tasks (List / Board / Workflow Guide via sidebar sub-nav) ── -->
+      <section *ngIf="activeSection === 'tasks'" class="section tasks-section">
+
+        <!-- Board action bar (filter controls + New Task) -->
+        <div class="section-header" *ngIf="tasksTab === 'board'">
+          <!-- Unified filter control: mode tabs + input in one pill -->
+          <div class="board-filter-combo">
+            <div class="bfc-tabs">
+              <button class="bfc-tab" [class.active]="boardFilterMode === 'month'" (click)="switchBoardMode('month')">Month</button>
+              <button class="bfc-tab" [class.active]="boardFilterMode === 'range'" (click)="switchBoardMode('range')">Custom Range</button>
+            </div>
+            <div class="bfc-divider"></div>
+            <!-- Month picker -->
+            <ng-container *ngIf="boardFilterMode === 'month'">
+              <input type="month" class="bfc-input" [(ngModel)]="boardMonth" />
+              <button *ngIf="boardMonth" class="bfc-clear" (click)="boardMonth = ''" title="Clear">✕</button>
+            </ng-container>
+            <!-- Date range picker -->
+            <ng-container *ngIf="boardFilterMode === 'range'">
+              <input type="date" class="bfc-input" [(ngModel)]="boardDateFrom" />
+              <span class="bfc-sep">–</span>
+              <input type="date" class="bfc-input" [(ngModel)]="boardDateTo" [min]="boardDateFrom" />
+              <button *ngIf="boardDateFrom || boardDateTo" class="bfc-clear" (click)="clearBoardFilter()">✕</button>
+            </ng-container>
+          </div>
+          <div class="header-actions">
+            <button class="btn-primary" *ngIf="perms.canCreateTask" (click)="openCreateTask()">+ New Task</button>
+          </div>
+        </div>
+
+        <!-- ── List tab ───────────────────────────────────── -->
+        <ng-container *ngIf="tasksTab === 'list'">
+          <!-- Filters + Export CSV + New Task all in one row -->
+          <div class="filter-bar" style="margin-bottom:0.875rem">
+            <input class="filter-input" type="text" placeholder="Search tasks…" [(ngModel)]="taskSearch" />
+            <select class="filter-select" [(ngModel)]="taskStatusFilter">
+              <option value="">All Status</option>
+              <option value="new">New</option>
+              <option value="refinement">Refinement</option>
+              <option value="ready">Ready</option>
+              <option value="in-progress">In Progress</option>
+              <option value="review">Review</option>
+              <option value="complete">Complete</option>
+            </select>
+            <select class="filter-select" [(ngModel)]="taskPriorityFilter">
+              <option value="">All Priority</option>
+              <option value="Urgent">Urgent</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+            <div class="date-range-filter">
+              <label class="filter-label">Deadline From</label>
+              <input class="filter-input filter-date" type="date" [(ngModel)]="taskDateFrom" />
+              <label class="filter-label">To</label>
+              <input class="filter-input filter-date" type="date" [(ngModel)]="taskDateTo" [min]="taskDateFrom" />
+              <button class="btn-clear-date" *ngIf="taskDateFrom || taskDateTo" (click)="clearDateFilter()" title="Clear date filter">✕</button>
+            </div>
+            <!-- Push buttons to the far right -->
+            <div class="filter-bar-actions">
+              <button class="btn-secondary" *ngIf="perms.canExportCsv" (click)="exportTasksCsv()">⬇ Export CSV</button>
+              <button class="btn-primary" *ngIf="perms.canCreateTask" (click)="openCreateTask()">+ New Task</button>
+            </div>
+          </div>
+
+          <div class="task-table-wrap">
+            <table class="task-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Assignee</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Deadline</th>
+                  <th *ngIf="perms.canViewBilling">Billing</th>
+                  <th *ngIf="perms.canViewBilling">Payment</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let task of filteredTasks; trackBy: trackById" [class.overdue-row]="isOverdue(task)">
+                  <td class="task-title">{{ task.title }}</td>
+                  <td>{{ getUserName(task.assignee) }}</td>
+                  <td><span class="badge badge-priority" [attr.data-priority]="task.priority">{{ task.priority }}</span></td>
+                  <td><span class="badge badge-status" [attr.data-status]="task.status">{{ task.status }}</span></td>
+                  <td [class.text-red]="isOverdue(task)">{{ task.deadline ? (task.deadline | date:'dd MMM yy') : '—' }}</td>
+                  <td *ngIf="perms.canViewBilling">{{ task.billing ?? '—' }}</td>
+                  <td *ngIf="perms.canViewBilling">
+                    <span class="badge badge-payment" [attr.data-pay]="task.paymentStatus">{{ task.paymentStatus ?? 'N/A' }}</span>
+                  </td>
+                  <td class="actions-cell">
+                    <button class="btn-icon" *ngIf="perms.canEditTask" title="Edit" (click)="openEditTask(task)">✏️</button>
+                    <button class="btn-icon btn-icon-danger" *ngIf="perms.canDeleteTask" title="Delete" (click)="confirmDelete(task.id)">🗑️</button>
+                  </td>
+                </tr>
+                <tr *ngIf="filteredTasks.length === 0">
+                  <td [attr.colspan]="perms.canViewBilling ? 8 : 6" class="empty">No tasks match the current filters</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="filter-count" *ngIf="taskSearch || taskStatusFilter || taskPriorityFilter || taskDateFrom || taskDateTo">
+            Showing {{ filteredTasks.length }} of {{ visibleTasks.length }} tasks
+          </p>
+        </ng-container>
+
+        <!-- ── Board tab ──────────────────────────────────── -->
+        <ng-container *ngIf="tasksTab === 'board'">
+          <!-- Stage summary strip (counts based on active date filter) -->
+          <div class="flow-chart">
+            <ng-container *ngIf="perms.canSeeEarlyStages">
+              <div class="flow-node" style="--acc:#6b7280"
+                [class.flow-node--active]="boardStageFilter === 'new'"
+                (click)="selectStage('new')" title="Click to filter this stage">
+                <span class="flow-count">{{ boardCountNew }}</span>
+                <span class="flow-label">New</span>
+              </div>
+              <span class="flow-arrow">→</span>
+              <div class="flow-node" style="--acc:#8b5cf6"
+                [class.flow-node--active]="boardStageFilter === 'refinement'"
+                (click)="selectStage('refinement')" title="Click to filter this stage">
+                <span class="flow-count">{{ boardCountRefinement }}</span>
+                <span class="flow-label">Refinement</span>
+              </div>
+              <span class="flow-arrow">→</span>
+            </ng-container>
+            <div class="flow-node" style="--acc:#3b82f6"
+              [class.flow-node--active]="boardStageFilter === 'ready'"
+              (click)="selectStage('ready')" title="Click to filter this stage">
+              <span class="flow-count">{{ boardCountReady }}</span>
+              <span class="flow-label">Ready</span>
+            </div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node" style="--acc:#f59e0b"
+              [class.flow-node--active]="boardStageFilter === 'in-progress'"
+              (click)="selectStage('in-progress')" title="Click to filter this stage">
+              <span class="flow-count">{{ boardCountInProgress }}</span>
+              <span class="flow-label">In Progress</span>
+            </div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node" style="--acc:#ec4899"
+              [class.flow-node--active]="boardStageFilter === 'review'"
+              (click)="selectStage('review')" title="Click to filter this stage">
+              <span class="flow-count">{{ boardCountReview }}</span>
+              <span class="flow-label">Review</span>
+            </div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node" style="--acc:#10b981"
+              [class.flow-node--active]="boardStageFilter === 'complete'"
+              (click)="selectStage('complete')" title="Click to filter this stage">
+              <span class="flow-count">{{ boardCountComplete }}</span>
+              <span class="flow-label">Complete</span>
+            </div>
+          </div>
+
+          <!-- Active filter chips -->
+          <div class="board-active-filters" *ngIf="boardHasFilter || boardStageFilter">
+            <span class="filter-chip" *ngIf="boardFilterMode === 'month' && boardMonth">
+              📅 {{ boardMonth }}
+              <button class="chip-x" (click)="boardMonth = ''">✕</button>
+            </span>
+            <span class="filter-chip" *ngIf="boardFilterMode === 'range' && (boardDateFrom || boardDateTo)">
+              📅 {{ boardDateFrom || '…' }} → {{ boardDateTo || '…' }}
+              <button class="chip-x" (click)="clearBoardFilter()">✕</button>
+            </span>
+            <span class="filter-chip" *ngIf="boardStageFilter">
+              🏷️ Stage: {{ boardStageFilter }}
+              <button class="chip-x" (click)="boardStageFilter = null">✕</button>
+            </span>
+            <button class="chip-clear-all" *ngIf="(boardHasFilter) && boardStageFilter" (click)="clearBoardFilter(); boardStageFilter = null">Clear all</button>
+          </div>
+
+          <app-kanban
+            [tasks]="filteredBoardTasks"
+            [users]="users"
+            [canEdit]="perms.canEditTask"
+            [canDelete]="perms.canDeleteTask"
+            [visibleStatuses]="visibleKanbanStatuses"
+            (editTask)="openEditTask($event)"
+            (deleteTask)="confirmDelete($event)"
+            (moveTask)="onKanbanMove($event)"
+            (addToColumn)="openCreateTaskInColumn($event)">
+          </app-kanban>
+        </ng-container>
+
+        <!-- ── Workflow Guide tab ─────────────────────────── -->
+        <ng-container *ngIf="tasksTab === 'guide'">
+          <div class="workflow-guide">
+            <p class="guide-intro">
+              Every work item moves through six stages from intake to completion.
+              Drag cards between columns on the Board to update status instantly.
+            </p>
+            <div class="guide-stages">
+
+              <ng-container *ngIf="perms.canSeeEarlyStages">
+                <div class="guide-card" style="--acc:#6b7280">
+                  <div class="gc-icon">📥</div>
+                  <div class="gc-accent-bar"></div>
+                  <div class="gc-body">
+                    <h4 class="gc-title">New</h4>
+                    <p class="gc-desc">A fresh work item has been logged. No owner or execution scope yet — it is waiting to be picked up and evaluated.</p>
+                    <ul class="gc-checklist">
+                      <li>Assign a team member</li>
+                      <li>Set priority &amp; deadline</li>
+                      <li>Move to Refinement when ready to scope</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="guide-card" style="--acc:#8b5cf6">
+                  <div class="gc-icon">🔬</div>
+                  <div class="gc-accent-bar"></div>
+                  <div class="gc-body">
+                    <h4 class="gc-title">Refinement</h4>
+                    <p class="gc-desc">The assignee is analysing scope, gathering client information, and clarifying requirements before any execution begins.</p>
+                    <ul class="gc-checklist">
+                      <li>Collect all client documents</li>
+                      <li>Clarify scope &amp; compliance period</li>
+                      <li>Move to Ready once scope is confirmed</li>
+                    </ul>
+                  </div>
+                </div>
+              </ng-container>
+
+              <div class="guide-card" style="--acc:#3b82f6">
+                <div class="gc-icon">✅</div>
+                <div class="gc-accent-bar"></div>
+                <div class="gc-body">
+                  <h4 class="gc-title">Ready</h4>
+                  <p class="gc-desc">Scope is confirmed and all inputs are in hand. The task is queued and cleared for active execution.</p>
+                  <ul class="gc-checklist">
+                    <li>All documents received from client</li>
+                    <li>No open queries blocking work</li>
+                    <li>Move to In Progress to begin execution</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="guide-card" style="--acc:#f59e0b">
+                <div class="gc-icon">⚡</div>
+                <div class="gc-accent-bar"></div>
+                <div class="gc-body">
+                  <h4 class="gc-title">In Progress</h4>
+                  <p class="gc-desc">Active execution stage — filings, calculations, or audit work is underway. The clock is ticking against the deadline.</p>
+                  <ul class="gc-checklist">
+                    <li>Monitor deadline daily</li>
+                    <li>Upload working papers &amp; supporting docs</li>
+                    <li>Move to Review once draft-complete</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="guide-card" style="--acc:#ec4899">
+                <div class="gc-icon">🔍</div>
+                <div class="gc-accent-bar"></div>
+                <div class="gc-body">
+                  <h4 class="gc-title">Review</h4>
+                  <p class="gc-desc">Work is complete and awaiting quality check by a senior or manager before submission to the client or authority.</p>
+                  <ul class="gc-checklist">
+                    <li>Reviewer checks calculations &amp; compliance</li>
+                    <li>Client approval obtained if required</li>
+                    <li>Move to Complete after sign-off</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="guide-card" style="--acc:#10b981">
+                <div class="gc-icon">🏁</div>
+                <div class="gc-accent-bar"></div>
+                <div class="gc-body">
+                  <h4 class="gc-title">Complete</h4>
+                  <p class="gc-desc">Filed, submitted, and closed. The task is archived in the register and billing can be raised if applicable.</p>
+                  <ul class="gc-checklist">
+                    <li>Acknowledgement / receipt saved</li>
+                    <li>Invoice raised against billing value</li>
+                    <li>Mark payment status when collected</li>
+                  </ul>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </ng-container>
+
+      </section>
+
+      <!-- ── Deadlines ─────────────────────────────────── -->
+      <section *ngIf="activeSection === 'deadlines'" class="section">
+
+        <div class="deadline-columns">
+          <div class="deadline-panel overdue-panel">
+            <h3 class="panel-title panel-title--danger">Overdue ({{ overdueTasks.length }})</h3>
+            <div class="deadline-list">
+              <div class="deadline-item overdue" *ngFor="let task of overdueTasks">
+                <div class="deadline-info">
+                  <p class="deadline-title">{{ task.title }}</p>
+                  <p class="deadline-assignee">{{ getUserName(task.assignee) }}</p>
+                </div>
+                <div class="deadline-right">
+                  <span class="badge badge-priority" [attr.data-priority]="task.priority">{{ task.priority }}</span>
+                  <p class="deadline-date text-red">{{ task.deadline | date:'dd MMM yy' }}</p>
+                  <p class="deadline-overdue-by">{{ getDaysLeft(task.deadline!) }}</p>
+                </div>
+              </div>
+              <p *ngIf="overdueTasks.length === 0" class="empty">No overdue tasks</p>
+            </div>
+          </div>
+
+          <div class="deadline-panel upcoming-panel">
+            <h3 class="panel-title panel-title--info">Due This Week ({{ upcomingWeekTasks.length }})</h3>
+            <div class="deadline-list">
+              <div class="deadline-item" *ngFor="let task of upcomingWeekTasks">
+                <div class="deadline-info">
+                  <p class="deadline-title">{{ task.title }}</p>
+                  <p class="deadline-assignee">{{ getUserName(task.assignee) }}</p>
+                </div>
+                <div class="deadline-right">
+                  <span class="badge badge-status" [attr.data-status]="task.status">{{ task.status }}</span>
+                  <p class="deadline-date">{{ task.deadline | date:'dd MMM yy' }}</p>
+                  <p class="deadline-days-left">{{ getDaysLeft(task.deadline!) }}</p>
+                </div>
+              </div>
+              <p *ngIf="upcomingWeekTasks.length === 0" class="empty">Nothing due this week</p>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="sub-title">Deadline Register — All Active Matters</h3>
+        <div class="task-table-wrap">
+          <table class="task-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Assignee</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Due Date</th>
+                <th>Days Left</th>
+                <th *ngIf="perms.canViewBilling">Billing</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let task of upcomingDeadlines; let i = index" [class.overdue-row]="isOverdue(task)">
+                <td class="text-muted">{{ i + 1 }}</td>
+                <td class="task-title">{{ task.title }}</td>
+                <td>{{ getUserName(task.assignee) }}</td>
+                <td><span class="badge badge-priority" [attr.data-priority]="task.priority">{{ task.priority }}</span></td>
+                <td><span class="badge badge-status" [attr.data-status]="task.status">{{ task.status }}</span></td>
+                <td [class.text-red]="isOverdue(task)">{{ task.deadline ? (task.deadline | date:'dd MMM yy') : '—' }}</td>
+                <td [class.text-red]="isOverdue(task)">{{ task.deadline ? getDaysLeft(task.deadline) : '—' }}</td>
+                <td *ngIf="perms.canViewBilling">{{ task.billing ?? '—' }}</td>
+              </tr>
+              <tr *ngIf="upcomingDeadlines.length === 0">
+                <td [attr.colspan]="perms.canViewBilling ? 8 : 7" class="empty">All tasks are completed!</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── Alerts & Health ───────────────────────────── -->
+      <section *ngIf="activeSection === 'alerts'" class="section">
+
+        <div class="alert-block alert-critical" *ngIf="cachedCriticalAlerts.length > 0">
+          <h3 class="alert-block-title">🚨 Critical — Severely Overdue ({{ cachedCriticalAlerts.length }})</h3>
+          <ul class="alert-list">
+            <li class="alert-item alert-item--danger" *ngFor="let a of cachedCriticalAlerts">{{ a }}</li>
+          </ul>
+        </div>
+
+        <div class="alert-block alert-warnings" *ngIf="cachedWarningAlerts.length > 0">
+          <h3 class="alert-block-title">⚠️ Warnings ({{ cachedWarningAlerts.length }})</h3>
+          <ul class="alert-list">
+            <li class="alert-item alert-item--warn" *ngFor="let a of cachedWarningAlerts">{{ a }}</li>
+          </ul>
+        </div>
+
+        <div class="alert-clear" *ngIf="cachedCriticalAlerts.length === 0 && cachedWarningAlerts.length === 0">
+          <span class="alert-clear-icon">✅</span>
+          <p>All clear — no critical or warning alerts at this time.</p>
+        </div>
+
+        <h3 class="sub-title">Team Health Scorecard</h3>
+        <div class="health-kpi-grid">
+          <div class="health-kpi-card" *ngFor="let kpi of cachedHealthKPIs">
+            <div class="health-kpi-icon">{{ kpi.icon }}</div>
+            <div class="health-kpi-bar-wrap">
+              <div class="health-kpi-label">{{ kpi.label }}</div>
+              <div class="health-kpi-bar">
+                <div class="health-kpi-fill" [style.width.%]="kpi.value" [style.background]="kpi.color"></div>
+              </div>
+            </div>
+            <div class="health-kpi-val" [style.color]="kpi.color">{{ kpi.value }}%</div>
+          </div>
+        </div>
+
+        <div class="overall-score-card">
+          <div class="overall-score-label">Overall Team Health Score</div>
+          <div class="overall-score-val"
+            [class.score-high]="teamHealthScore >= 70"
+            [class.score-mid]="teamHealthScore >= 40 && teamHealthScore < 70"
+            [class.score-low]="teamHealthScore < 40">
+            {{ teamHealthScore }}%
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Activity Feed ──────────────────────────────── -->
+      <section *ngIf="activeSection === 'activity'" class="section">
+        <div class="section-header">
+          <p class="filter-count">
+            Page {{ activityPage + 1 }} of {{ totalActivityPages }}
+            &nbsp;·&nbsp; {{ activities.length }} total entries
+          </p>
+        </div>
+        <div class="activity-list">
+          <div class="activity-item" *ngFor="let act of paginatedActivities">
+            <div class="activity-icon-circle" [style.background]="getActivityColor(act.action)">
+              {{ getActivityIcon(act.action) }}
+            </div>
+            <div class="activity-body">
+              <p class="activity-action">{{ formatActivity(act) }}</p>
+              <p class="activity-meta">{{ act.timestamp | date:'dd MMM yyyy, HH:mm' }}</p>
+            </div>
+          </div>
+          <p *ngIf="activities.length === 0" class="empty">No activity yet</p>
+        </div>
+        <!-- Pagination controls -->
+        <div class="pagination-controls" *ngIf="totalActivityPages > 1">
+          <button class="btn-page" (click)="prevActivityPage()" [disabled]="activityPage === 0">← Prev</button>
+          <span class="page-indicator">{{ activityPage + 1 }} / {{ totalActivityPages }}</span>
+          <button class="btn-page" (click)="nextActivityPage()" [disabled]="activityPage >= totalActivityPages - 1">Next →</button>
+        </div>
+      </section>
+
+      <!-- ── Team Directory ────────────────────────────── -->
+      <!-- ── Team Directory ──────────────────────────────── -->
+      <section *ngIf="activeSection === 'team'" class="section">
+        <div class="section-header">
+          <div class="team-toolbar">
+            <div class="search-wrap">
+              <input [(ngModel)]="memberSearch" type="text" placeholder="Search members…" class="search-input" />
+            </div>
+            <div class="view-toggle">
+              <button class="view-btn" [class.active]="teamView === 'grid'"      (click)="teamView = 'grid'">⊞ All Members</button>
+              <button class="view-btn" [class.active]="teamView === 'hierarchy'" (click)="teamView = 'hierarchy'">🌲 Hierarchy</button>
+            </div>
+          </div>
+          <button class="btn-primary" *ngIf="perms.canAddMember" (click)="openAddMember()">+ Add Member</button>
+        </div>
+
+        <!-- ── Grid / All Members view ───────────────────── -->
+        <div class="member-grid" *ngIf="teamView === 'grid'">
+          <div class="member-card" *ngFor="let u of filteredMembers"
+            [class.member-card-me]="u.id === currentUser?.id"
+            (click)="openMemberDetail(u)">
+            <div class="member-card-top">
+              <div class="mc-avatar">
+                <img [src]="u.photo" [alt]="u.name" />
+              </div>
+              <div class="mc-actions" (click)="$event.stopPropagation()">
+                <button *ngIf="perms.canAddMember" class="mc-btn edit" (click)="openEditMember(u)" title="Edit">✏️</button>
+                <button *ngIf="perms.canRemoveMember && u.id !== currentUser?.id" class="mc-btn danger" (click)="confirmDeleteUser(u.id)" title="Remove">🗑️</button>
+              </div>
+            </div>
+            <div class="mc-info">
+              <p class="mc-name">{{ u.name }}</p>
+              <p class="mc-designation">{{ u.designation || getRoleLabel(u.role) }}</p>
+              <p class="mc-dept" *ngIf="u.department">{{ u.department }}</p>
+            </div>
+            <div class="mc-footer">
+              <span class="mc-role-badge">{{ getRoleLabel(u.role) }}</span>
+              <span class="mc-tasks" [class.mc-tasks-busy]="getTasksForUser(u.id) > 3">
+                {{ getTasksForUser(u.id) }} active tasks
+              </span>
+            </div>
+            <div class="mc-contact">
+              <a *ngIf="u.phone" [href]="'tel:' + u.phone" class="mc-link" (click)="$event.stopPropagation()">📞 {{ u.phone }}</a>
+              <a *ngIf="u.email" [href]="'mailto:' + u.email" class="mc-link" (click)="$event.stopPropagation()">✉️ {{ u.email }}</a>
+            </div>
+          </div>
+          <p class="empty" *ngIf="filteredMembers.length === 0">No members match your search.</p>
+        </div>
+
+        <!-- ── Hierarchy — visual tree view ─────────────── -->
+        <div class="tree-list" *ngIf="teamView === 'hierarchy'">
+          <div class="tree-row" *ngFor="let item of hierarchyList"
+            (click)="openMemberDetail(item.user)">
+
+            <div class="tree-guides">
+              <span *ngFor="let continues of item.parentContinues"
+                class="tree-guide"
+                [class.tree-guide--line]="continues"
+                [class.tree-guide--blank]="!continues">
+              </span>
+              <span *ngIf="item.depth > 0"
+                class="tree-connector"
+                [class.tree-connector--last]="item.isLast">
+              </span>
+            </div>
+
+            <div class="tree-node" [class.tree-node--root]="item.depth === 0">
+              <div class="hn-avatar">
+                <img [src]="item.user.photo" [alt]="item.user.name" />
+              </div>
+              <div class="hn-info">
+                <span class="hn-name">{{ item.user.name }}</span>
+                <span class="hn-role">{{ item.user.designation || getRoleLabel(item.user.role) }}</span>
+                <span class="hn-dept" *ngIf="item.user.department"> · {{ item.user.department }}</span>
+              </div>
+              <div class="hn-meta">
+                <span class="hn-tasks" *ngIf="getTasksForUser(item.user.id) > 0">
+                  {{ getTasksForUser(item.user.id) }} tasks
+                </span>
+                <span class="hn-me" *ngIf="item.user.id === currentUser?.id">You</span>
+              </div>
+              <div class="hn-actions" (click)="$event.stopPropagation()">
+                <button *ngIf="perms.canAddMember" class="mc-btn edit" (click)="openEditMember(item.user)" title="Edit">✏️</button>
+                <button *ngIf="perms.canRemoveMember && item.user.id !== currentUser?.id" class="mc-btn danger" (click)="confirmDeleteUser(item.user.id)" title="Remove">🗑️</button>
+              </div>
+            </div>
+          </div>
+          <p class="empty" *ngIf="hierarchyList.length === 0">No team members</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ── Task Modal ──────────────────────────────────────── -->
+<app-task-modal
+  [visible]="taskModalVisible"
+  [task]="editingTask"
+  [users]="users"
+  [currentUserRole]="currentUser?.role ?? ''"
+  [saving]="savingTask"
+  [defaultDeadline]="defaultTaskDeadline"
+  (save)="onSaveTask($event)"
+  (cancel)="closeTaskModal()">
+</app-task-modal>
+
+<!-- ── Delete Task Confirm ─────────────────────────────── -->
+<div class="modal-backdrop" *ngIf="deleteConfirmId" (click)="cancelDelete()"></div>
+<div class="confirm-dialog" *ngIf="deleteConfirmId">
+  <p>Delete this task? This cannot be undone.</p>
+  <div class="confirm-actions">
+    <button class="btn-secondary" (click)="cancelDelete()">Cancel</button>
+    <button class="btn-danger" (click)="deleteTask()">Delete</button>
+  </div>
+</div>
+
+<!-- ── Delete User Confirm ────────────────────────────── -->
+<div class="modal-backdrop" *ngIf="deleteUserConfirmId" (click)="cancelDeleteUser()"></div>
+<div class="confirm-dialog" *ngIf="deleteUserConfirmId">
+  <p>Remove this team member? This cannot be undone.</p>
+  <div class="confirm-actions">
+    <button class="btn-secondary" (click)="cancelDeleteUser()">Cancel</button>
+    <button class="btn-danger" (click)="deleteUser()">Remove</button>
+  </div>
+</div>
+
+<!-- ── Add / Edit Member Modal ─────────────────────────── -->
+<app-user-modal
+  [visible]="userModalVisible"
+  [editingUser]="editingUser"
+  [allUsers]="users"
+  [currentUserRole]="currentUser?.role ?? ''"
+  [saving]="savingUser"
+  (save)="onSaveUser($event)"
+  (cancel)="closeUserModal()">
+</app-user-modal>
+
+<!-- ── Member Detail Drawer ────────────────────────────── -->
+<app-member-detail-modal
+  [visible]="memberDetailVisible"
+  [member]="selectedMember"
+  [allUsers]="users"
+  [canEdit]="perms.canAddMember"
+  (close)="closeMemberDetail()"
+  (editUser)="openEditMember($event)">
+</app-member-detail-modal>
+
+<!-- ── Profile Modal ───────────────────────────────────── -->
+<app-profile-modal
+  [visible]="profileModalVisible"
+  [user]="currentUser"
+  [saving]="savingProfile"
+  (save)="onSaveProfile($event)"
+  (cancel)="profileModalVisible = false">
+</app-profile-modal>
+
+<ng-template #spinner>
+  <div class="loading-screen">Loading…</div>
+</ng-template>

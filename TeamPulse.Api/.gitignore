@@ -1,0 +1,43 @@
+# Build output
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+x64/
+x86/
+artifacts/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docview
+*.cache
+*.pidb
+*.booproj
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+nuget.cache
+project.lock.json
+project.fragment.lock.json
+
+# MSBuild
+*.binlog
+
+# Runtime / secrets
+*.env
+*.env.local
+appsettings.Development.json
+appsettings.local.json
+appsettings.secrets.json
+
+# OS
+.DS_Store
+Thumbs.db

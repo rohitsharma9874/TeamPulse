@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="TeamPulse.Domain/TeamPulse.Domain.csproj" />
+  <Project Path="TeamPulse.Application/TeamPulse.Application.csproj" />
+  <Project Path="TeamPulse.Infrastructure/TeamPulse.Infrastructure.csproj" />
+  <Project Path="TeamPulse.WebApi/TeamPulse.WebApi.csproj" />
+</Solution>

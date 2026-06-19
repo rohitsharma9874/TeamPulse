@@ -1,0 +1,196 @@
+<div class="modal-backdrop" *ngIf="visible" (click)="close()"></div>
+
+<div class="modal" *ngIf="visible" role="dialog" aria-modal="true">
+  <div class="modal-header">
+    <h2>{{ isEdit ? 'Edit Task' : 'New Task' }}</h2>
+    <button class="btn-close" (click)="close()" aria-label="Close">&times;</button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="modal-body">
+
+    <!-- Title -->
+    <div class="field full">
+      <label>Title <span class="req">*</span></label>
+      <input formControlName="title" type="text" placeholder="Task title" />
+      <p class="err" *ngIf="isInvalid('title')">Title is required</p>
+    </div>
+
+    <!-- Description -->
+    <div class="field full">
+      <label>Description <span class="req">*</span></label>
+      <textarea formControlName="description" rows="2" placeholder="Brief description"></textarea>
+      <p class="err" *ngIf="isInvalid('description')">Description is required</p>
+    </div>
+
+    <!-- Assignee + Priority -->
+    <div class="field-row">
+      <div class="field">
+        <label>Assignee <span class="req">*</span></label>
+        <select formControlName="assignee">
+          <option value="">— Select —</option>
+          <option *ngFor="let u of assignableUsers" [value]="u.id">{{ u.name }}</option>
+        </select>
+        <p class="err" *ngIf="isInvalid('assignee')">Assignee is required</p>
+      </div>
+      <div class="field">
+        <label>Priority <span class="req">*</span></label>
+        <select formControlName="priority">
+          <option *ngFor="let p of priorities" [value]="p">{{ p }}</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Status + Deadline -->
+    <div class="field-row">
+      <div class="field">
+        <label>Stage</label>
+        <select formControlName="status">
+          <option *ngFor="let s of statuses" [value]="s.value">{{ s.label }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Deadline</label>
+        <input formControlName="deadline" type="date" [min]="todayStr" />
+      </div>
+    </div>
+
+    <!-- Client Contact -->
+    <div class="field full">
+      <label>Client Contact</label>
+      <input formControlName="clientContact" type="text" placeholder="Name / Phone" />
+    </div>
+
+    <!-- Billing + Payment -->
+    <div class="field-row">
+      <div class="field">
+        <label>Billing Details</label>
+        <input formControlName="billing" type="text" placeholder="e.g. ₹500 / Internal" />
+      </div>
+      <div class="field">
+        <label>Payment Status</label>
+        <select formControlName="paymentStatus">
+          <option *ngFor="let p of payments" [value]="p">{{ p }}</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Remarks -->
+    <div class="field full">
+      <label>Remarks</label>
+      <textarea formControlName="remarks" rows="2" placeholder="Any additional notes"></textarea>
+    </div>
+
+    <!-- ── Attachments ──────────────────────────────────── -->
+    <div class="attach-section">
+      <p class="attach-title">Supporting Documents</p>
+
+      <!-- Existing attachments (edit mode) -->
+      <div class="attach-list" *ngIf="existingDocs.length > 0 || loadingDocs">
+        <p class="attach-subtitle" *ngIf="existingDocs.length > 0">Uploaded ({{ existingDocs.length }})</p>
+        <p class="attach-loading" *ngIf="loadingDocs">Loading attachments…</p>
+        <div class="attach-item" *ngFor="let doc of existingDocs">
+          <span class="attach-icon">{{ fileIcon(doc.contentType) }}</span>
+          <div class="attach-meta">
+            <p class="attach-name">{{ doc.originalName }}</p>
+            <p class="attach-size">{{ formatBytes(doc.fileSize) }}</p>
+          </div>
+          <div class="attach-actions">
+            <button type="button" class="attach-btn download" title="Download" (click)="downloadDoc(doc)">⬇</button>
+            <button type="button" class="attach-btn delete"   title="Remove"   (click)="deleteExisting(doc)">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending files (to upload on save) -->
+      <div class="attach-list" *ngIf="pendingFiles.length > 0">
+        <p class="attach-subtitle">Pending upload ({{ pendingFiles.length }})</p>
+        <div class="attach-item attach-item--pending" *ngFor="let f of pendingFiles">
+          <span class="attach-icon">{{ fileIcon(f.type) }}</span>
+          <div class="attach-meta">
+            <p class="attach-name">{{ f.name }}</p>
+            <p class="attach-size">{{ formatBytes(f.size) }}</p>
+          </div>
+          <button type="button" class="attach-btn delete" title="Remove" (click)="removePending(f)">✕</button>
+        </div>
+      </div>
+
+      <!-- Drop zone -->
+      <div class="drop-zone"
+        [class.drop-zone--over]="isDragOver"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave()"
+        (drop)="onDrop($event)"
+        (click)="fileInput.click()">
+        <span class="drop-icon">📎</span>
+        <p class="drop-label">Drop files here or <span class="drop-link">browse</span></p>
+        <p class="drop-hint">Any file type · max 20 MB each</p>
+        <input #fileInput type="file" multiple hidden (change)="onFileInputChange($event)" />
+      </div>
+    </div>
+
+    <!-- ── Payment History (edit mode only) ──────────────── -->
+    <div class="attach-section" *ngIf="isEdit">
+      <div class="pay-header">
+        <p class="attach-title">Payment History</p>
+        <span class="pay-total" *ngIf="paymentHistory.length > 0">
+          Total paid: ₹{{ totalPaid() | number:'1.0-0' }}
+        </span>
+        <button type="button" class="btn-add-pay" (click)="showAddPayment = !showAddPayment">
+          {{ showAddPayment ? '✕ Cancel' : '+ Log Payment' }}
+        </button>
+      </div>
+
+      <!-- Add payment form -->
+      <div class="add-pay-form" *ngIf="showAddPayment">
+        <div class="pay-form-row">
+          <div class="pay-field">
+            <label>Amount (₹) <span class="req">*</span></label>
+            <input type="number" min="0" step="0.01" [(ngModel)]="newPaymentAmount" placeholder="e.g. 5000" />
+          </div>
+          <div class="pay-field">
+            <label>Method</label>
+            <select [(ngModel)]="newPaymentMethod">
+              <option *ngFor="let m of paymentMethods" [value]="m">{{ m }}</option>
+            </select>
+          </div>
+          <div class="pay-field">
+            <label>Date</label>
+            <input type="date" [(ngModel)]="newPaymentDate" [max]="todayStr" />
+          </div>
+        </div>
+        <div class="pay-field full">
+          <label>Notes</label>
+          <input type="text" [(ngModel)]="newPaymentNotes" placeholder="Reference / remarks" />
+        </div>
+        <button type="button" class="btn-primary btn-pay-save" [disabled]="savingPayment || !newPaymentAmount"
+          (click)="addPayment()">
+          {{ savingPayment ? 'Saving…' : 'Save Payment' }}
+        </button>
+      </div>
+
+      <p class="attach-loading" *ngIf="loadingPayments">Loading payment history…</p>
+      <p class="muted-hint" *ngIf="!loadingPayments && paymentHistory.length === 0 && !showAddPayment">No payments recorded yet.</p>
+
+      <div class="pay-list" *ngIf="paymentHistory.length > 0">
+        <div class="pay-item" *ngFor="let t of paymentHistory">
+          <div class="pay-item-icon">💳</div>
+          <div class="pay-item-meta">
+            <span class="pay-amount">₹{{ t.amount | number:'1.0-0' }}</span>
+            <span class="pay-method">{{ t.paymentMethod }}</span>
+            <span class="pay-date">{{ formatDate(t.paidOn) }}</span>
+            <span class="pay-notes" *ngIf="t.notes">{{ t.notes }}</span>
+          </div>
+          <button type="button" class="attach-btn delete" title="Remove" (click)="deletePayment(t)">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" (click)="close()">Cancel</button>
+      <button type="submit" class="btn-primary" [disabled]="saving">
+        {{ saving ? 'Saving…' : (isEdit ? 'Update Task' : 'Create Task') }}
+      </button>
+    </div>
+
+  </form>
+</div>

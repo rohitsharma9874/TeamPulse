@@ -1,0 +1,152 @@
+<ng-container *ngIf="visible">
+  <div class="modal-backdrop" (click)="cancel.emit()"></div>
+
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="profile-avatar-wrap" *ngIf="user?.photo">
+          <img [src]="user!.photo" [alt]="user!.name" class="profile-avatar" />
+        </div>
+        <div>
+          <h3 id="profile-modal-title">Edit Profile</h3>
+          <p class="profile-role-hint">{{ user?.name }} · Personal details only</p>
+        </div>
+      </div>
+      <button class="close-btn" (click)="cancel.emit()">✕</button>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <button *ngFor="let t of tabs" type="button"
+        class="tab-btn" [class.active]="activeTab === t.key"
+        (click)="activeTab = t.key">
+        <span class="tab-icon">{{ t.icon }}</span>
+        <span class="tab-label">{{ t.label }}</span>
+      </button>
+    </div>
+
+    <form class="modal-body" [formGroup]="form" (ngSubmit)="submit()">
+
+      <!-- ── Personal tab ──────────────────────────────────── -->
+      <div class="tab-panel" *ngIf="activeTab === 'personal'">
+        <div class="form-row">
+          <div class="field">
+            <label>Full Name <span class="req">*</span></label>
+            <input formControlName="name" type="text" placeholder="Your full name" [class.err]="isInvalid('name')" />
+            <span class="err-msg" *ngIf="isInvalid('name')">Required</span>
+          </div>
+          <div class="field">
+            <label>Email <span class="req">*</span></label>
+            <input formControlName="email" type="email" placeholder="you@firm.co" [class.err]="isInvalid('email')" />
+            <span class="err-msg" *ngIf="isInvalid('email')">Valid email required</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>Phone</label>
+            <input formControlName="phone" type="tel" placeholder="+91 98765 43210" [class.err]="isInvalid('phone')" />
+            <span class="err-msg" *ngIf="isInvalid('phone')">Valid phone required</span>
+          </div>
+          <div class="field">
+            <label>Gender</label>
+            <select formControlName="gender">
+              <option value="">— Select —</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>Date of Birth</label>
+            <input formControlName="dateOfBirth" type="date" />
+          </div>
+        </div>
+
+        <div class="info-note">
+          <span class="info-icon">ℹ️</span>
+          Role, department, designation and reporting line are managed by your administrator.
+        </div>
+      </div>
+
+      <!-- ── Address tab ──────────────────────────────────── -->
+      <div class="tab-panel" *ngIf="activeTab === 'address'">
+        <div class="form-row single full">
+          <div class="field">
+            <label>Address</label>
+            <input formControlName="addressLine1" type="text" placeholder="Flat / Street / Locality" />
+          </div>
+        </div>
+
+        <div class="form-row three">
+          <div class="field">
+            <label>City</label>
+            <input formControlName="city" type="text" placeholder="Mumbai" />
+          </div>
+          <div class="field">
+            <label>State</label>
+            <input formControlName="state" type="text" placeholder="Maharashtra" />
+          </div>
+          <div class="field">
+            <label>Pin Code</label>
+            <input formControlName="pinCode" type="text" placeholder="400001" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>Country</label>
+            <input formControlName="country" type="text" placeholder="India" />
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Emergency tab ────────────────────────────────── -->
+      <div class="tab-panel" *ngIf="activeTab === 'emergency'">
+        <p class="section-hint">Emergency contact to reach in case of urgent need.</p>
+        <div class="form-row">
+          <div class="field">
+            <label>Contact Name</label>
+            <input formControlName="emergencyContact" type="text" placeholder="Parent / Spouse / Friend" />
+          </div>
+          <div class="field">
+            <label>Contact Phone</label>
+            <input formControlName="emergencyPhone" type="tel" placeholder="+91 99999 00000" />
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Security tab ─────────────────────────────────── -->
+      <div class="tab-panel" *ngIf="activeTab === 'security'">
+        <p class="section-hint">Leave the password field empty to keep your current password.</p>
+        <div class="form-row">
+          <div class="field">
+            <label>New Password</label>
+            <div class="pw-wrap">
+              <input formControlName="newPassword"
+                [type]="showPassword ? 'text' : 'password'"
+                placeholder="Min 6 characters"
+                [class.err]="isInvalid('newPassword')" />
+              <button type="button" class="pw-toggle" (click)="showPassword = !showPassword">
+                {{ showPassword ? '🙈' : '👁️' }}
+              </button>
+            </div>
+            <span class="err-msg" *ngIf="isInvalid('newPassword')">Minimum 6 characters</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="cancel.emit()" [disabled]="saving">Cancel</button>
+        <button type="submit" class="btn-primary" [disabled]="saving">
+          {{ saving ? 'Saving…' : 'Save Changes' }}
+        </button>
+      </div>
+
+    </form>
+  </div>
+</ng-container>

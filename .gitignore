@@ -25,3 +25,21 @@
 # OS files
 Thumbs.db
 .DS_Store
+
+# Secrets — never commit real credentials
+appsettings.Development.json
+appsettings.Production.json
+appsettings.*.secrets.json
+
+# Angular
+node_modules/
+dist/
+.angular/
+.npm/
+
+# Uploaded files (user content — never commit)
+uploads/
+
+# Local dev scripts/test bodies
+body.json
+verify-task.ps1
