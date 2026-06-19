@@ -1,3 +1,9 @@
+<div class="inactivity-warning" *ngIf="showInactivityWarning">
+  <span class="iw-icon">&#9888;</span>
+  <span class="iw-text">Your session will expire in <strong>{{ inactivityCountdown }}</strong> due to inactivity.</span>
+  <button class="iw-btn" (click)="keepAlive()">Keep me logged in</button>
+</div>
+
 <div class="shell" *ngIf="!loading; else spinner">
 
   <!-- Mobile sidebar overlay -->

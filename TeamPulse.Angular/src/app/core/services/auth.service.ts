@@ -58,7 +58,7 @@ export class AuthService {
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(USER_KEY);
     this.currentUserSubject.next(null);
-    this.router.navigate(['/login']);
+    this.router.navigate(['/login'], {});
   }
 
   private loadUser(): User | null {

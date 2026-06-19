@@ -1,5 +1,33 @@
 :host { display: block; height: 100vh; }
 
+// ── Inactivity warning banner ──────────────────────────────
+.inactivity-warning {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1.25rem;
+  background: #92400e;
+  color: #fef3c7;
+  font-size: 0.85rem;
+
+  .iw-icon { font-size: 1rem; flex-shrink: 0; }
+  .iw-text { flex: 1; }
+  .iw-btn {
+    flex-shrink: 0;
+    padding: 0.3rem 0.9rem;
+    border: 1px solid #fef3c7;
+    border-radius: 6px;
+    background: transparent;
+    color: #fef3c7;
+    font-size: 0.8rem;
+    cursor: pointer;
+    &:hover { background: rgba(255,255,255,0.15); }
+  }
+}
+
 // ── Shell ─────────────────────────────────────────────────
 .shell {
   display: flex;

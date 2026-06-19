@@ -8,6 +8,10 @@
       </div>
     </div>
 
+    <div class="timeout-notice" *ngIf="timeoutNotice">
+      &#9432; You were signed out after 30 minutes of inactivity.
+    </div>
+
     <form [formGroup]="form" (ngSubmit)="submit()">
       <div class="field">
         <label>Username</label>

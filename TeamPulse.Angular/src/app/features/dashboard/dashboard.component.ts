@@ -2,10 +2,12 @@ import { Component, NgZone, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import Chart from 'chart.js/auto';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
 import { ThemeService } from '../../core/services/theme.service';
+import { InactivityService } from '../../core/services/inactivity.service';
 import { PermissionService, AppPermissions, getRoleTier } from '../../core/services/permission.service';
 import { User, CreateUserRequest, UpdateProfileRequest, ROLE_LABELS, ROLE_HIERARCHY } from '../../core/models/user.model';
 import { Task, TaskRequest, PRIORITY_ORDER } from '../../core/models/task.model';
@@ -104,6 +106,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   boardDateFrom = '';
   boardDateTo   = '';
   boardStageFilter: KanbanStatus | null = null;
+
+  // Inactivity warning
+  showInactivityWarning = false;
+  inactivitySecondsLeft = 300;
+  private inactivitySubs: Subscription[] = [];
 
   // Mobile sidebar toggle
   sidebarOpen = false;
@@ -207,6 +214,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     public theme: ThemeService,
     private ngZone: NgZone,
     private permService: PermissionService,
+    private inactivity: InactivityService,
   ) {}
 
   ngOnInit(): void {
@@ -223,11 +231,28 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (savedPerfTab) this.perfTab = savedPerfTab;
     this.startClock();
     this.loadAll();
+    this.inactivity.start();
+    this.inactivitySubs = [
+      this.inactivity.showWarning$.subscribe(v => this.showInactivityWarning = v),
+      this.inactivity.remainingSeconds$.subscribe(v => this.inactivitySecondsLeft = v),
+    ];
   }
 
   ngOnDestroy(): void {
     clearInterval(this.clockTimer);
     this.destroyAllCharts();
+    this.inactivity.stop();
+    this.inactivitySubs.forEach(s => s.unsubscribe());
+  }
+
+  keepAlive(): void {
+    this.inactivity.keepAlive();
+  }
+
+  get inactivityCountdown(): string {
+    const m = Math.floor(this.inactivitySecondsLeft / 60);
+    const s = this.inactivitySecondsLeft % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
   }
 
   private startClock(): void {
