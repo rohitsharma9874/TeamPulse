@@ -12,9 +12,9 @@ on:
       - 'TeamPulse.Api/**'
 
 env:
-  DOTNET_VERSION: '10.0.x'
-  AZURE_WEBAPP_NAME: 'teampulse-api'
-  PROJECT_PATH: 'TeamPulse.Api/TeamPulse.WebApi/TeamPulse.WebApi.csproj'
+  CONTAINER_APP_NAME: teampulse-api
+  RESOURCE_GROUP: teampulse-rg
+  ACR_LOGIN_SERVER: teampulseacrks.azurecr.io
 
 jobs:
   build:
@@ -27,24 +27,10 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: '10.0.x'
 
-      - name: Restore
-        run: dotnet restore ${{ env.PROJECT_PATH }}
-
-      - name: Build
-        run: dotnet build ${{ env.PROJECT_PATH }} --no-restore --configuration Release
-
-      - name: Publish
-        if: github.ref == 'refs/heads/main'
-        run: dotnet publish ${{ env.PROJECT_PATH }} --no-build --configuration Release --output ./publish
-
-      - name: Upload artifact
-        if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
-        with:
-          name: api-artifact
-          path: ./publish
+      - name: Build (verify)
+        run: dotnet build TeamPulse.Api/TeamPulse.WebApi/TeamPulse.WebApi.csproj --configuration Release
 
   deploy:
     name: Deploy to Azure (production)
@@ -54,15 +40,28 @@ jobs:
     environment: production
 
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: api-artifact
-          path: ./publish
+      - uses: actions/checkout@v4
 
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
+      - name: Login to Azure
+        uses: azure/login@v2
         with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ./publish
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t ${{ env.ACR_LOGIN_SERVER }}/teampulse-api:${{ github.sha }} ./TeamPulse.Api
+          docker push ${{ env.ACR_LOGIN_SERVER }}/teampulse-api:${{ github.sha }}
+
+      - name: Deploy to Container Apps
+        run: |
+          az containerapp update \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR_LOGIN_SERVER }}/teampulse-api:${{ github.sha }}
