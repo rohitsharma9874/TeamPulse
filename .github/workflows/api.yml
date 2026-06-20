@@ -4,22 +4,23 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - 'TeamPulse.Api/**'
+      - 'TeamPulse.API/**'
       - '.github/workflows/api.yml'
   pull_request:
     branches: [main, develop]
     paths:
-      - 'TeamPulse.Api/**'
+      - 'TeamPulse.API/**'
 
 env:
-  DOTNET_VERSION: '10.0.x'
-  AZURE_WEBAPP_NAME: 'teampulse-api'
-  PROJECT_PATH: 'TeamPulse.Api/TeamPulse.WebApi/TeamPulse.WebApi.csproj'
+  CONTAINER_APP_NAME: teampulse-api
+  RESOURCE_GROUP: teampulse-rg
+  ACR_LOGIN_SERVER: teampulseacrks.azurecr.io
 
 jobs:
-  build:
-    name: Build
+  build-and-deploy:
+    name: Build & Deploy
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - uses: actions/checkout@v4
@@ -27,42 +28,35 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: '10.0.x'
 
-      - name: Restore
-        run: dotnet restore ${{ env.PROJECT_PATH }}
+      - name: Build (verify)
+        run: dotnet build TeamPulse.API/TeamPulse.WebApi/TeamPulse.WebApi.csproj --configuration Release
 
-      - name: Build
-        run: dotnet build ${{ env.PROJECT_PATH }} --no-restore --configuration Release
-
-      - name: Publish
+      - name: Login to Azure
         if: github.ref == 'refs/heads/main'
-        run: dotnet publish ${{ env.PROJECT_PATH }} --no-build --configuration Release --output ./publish
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Upload artifact
+      - name: Login to ACR
         if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
+        uses: docker/login-action@v3
         with:
-          name: api-artifact
-          path: ./publish
+          registry: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
 
-  deploy:
-    name: Deploy to Azure (production)
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main'
-    environment: production
+      - name: Build and push Docker image
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker build -t ${{ env.ACR_LOGIN_SERVER }}/teampulse-api:${{ github.sha }} ./TeamPulse.API
+          docker push ${{ env.ACR_LOGIN_SERVER }}/teampulse-api:${{ github.sha }}
 
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: api-artifact
-          path: ./publish
-
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ./publish
+      - name: Deploy to Container Apps
+        if: github.ref == 'refs/heads/main'
+        run: |
+          az containerapp update \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR_LOGIN_SERVER }}/teampulse-api:${{ github.sha }}
