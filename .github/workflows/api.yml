@@ -10,6 +10,7 @@ on:
     branches: [main, develop]
     paths:
       - 'TeamPulse.Api/**'
+      - '.github/workflows/api.yml'
 
 env:
   CONTAINER_APP_NAME: teampulse-api
