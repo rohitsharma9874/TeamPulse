@@ -64,4 +64,7 @@ jobs:
           az containerapp update \
             --name ${{ env.CONTAINER_APP_NAME }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ env.ACR_LOGIN_SERVER }}/teampulse-api:${{ github.sha }}
+            --image ${{ env.ACR_LOGIN_SERVER }}/teampulse-api:${{ github.sha }} \
+            --registry-server ${{ env.ACR_LOGIN_SERVER }} \
+            --registry-username ${{ secrets.ACR_USERNAME }} \
+            --registry-password ${{ secrets.ACR_PASSWORD }}
