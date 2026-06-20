@@ -9,8 +9,6 @@ using TeamPulse.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.UseUrls("http://localhost:5000");
-
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddControllers();
@@ -20,8 +18,17 @@ builder.WebHost.ConfigureKestrel(o =>
     o.Limits.MaxRequestBodySize = 20_971_520);
 
 builder.Services.AddCors(options =>
-    options.AddPolicy("LocalDev", p =>
-        p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+    options.AddPolicy("CorsPolicy", p =>
+    {
+        if (builder.Environment.IsDevelopment())
+            p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+        else
+        {
+            var origins = (builder.Configuration["AllowedOrigins"] ?? "")
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod();
+        }
+    }));
 
 var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? "TeamPulseLocalSecretKey123456789_ReplaceInProduction_MinimumLength32";
@@ -39,8 +46,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience         = true,
             ValidateLifetime         = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer              = "TeamPulseLocal",
-            ValidAudience            = "TeamPulseLocal",
+            ValidIssuer              = builder.Configuration["Jwt:Issuer"]   ?? "TeamPulseLocal",
+            ValidAudience            = builder.Configuration["Jwt:Audience"] ?? "TeamPulseLocal",
             IssuerSigningKey         = key
         };
     });
@@ -79,7 +86,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseCors("LocalDev");
+app.UseCors("CorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

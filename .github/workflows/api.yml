@@ -4,12 +4,12 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - 'TeamPulse.API/**'
+      - 'TeamPulse.Api/**'
       - '.github/workflows/api.yml'
   pull_request:
     branches: [main, develop]
     paths:
-      - 'TeamPulse.API/**'
+      - 'TeamPulse.Api/**'
 
 env:
   CONTAINER_APP_NAME: teampulse-api
@@ -31,7 +31,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Build (verify)
-        run: dotnet build TeamPulse.API/TeamPulse.WebApi/TeamPulse.WebApi.csproj --configuration Release
+        run: dotnet build TeamPulse.Api/TeamPulse.WebApi/TeamPulse.WebApi.csproj --configuration Release
 
       - name: Login to Azure
         if: github.ref == 'refs/heads/main'
@@ -50,7 +50,7 @@ jobs:
       - name: Build and push Docker image
         if: github.ref == 'refs/heads/main'
         run: |
-          docker build -t ${{ env.ACR_LOGIN_SERVER }}/teampulse-api:${{ github.sha }} ./TeamPulse.API
+          docker build -t ${{ env.ACR_LOGIN_SERVER }}/teampulse-api:${{ github.sha }} ./TeamPulse.Api
           docker push ${{ env.ACR_LOGIN_SERVER }}/teampulse-api:${{ github.sha }}
 
       - name: Deploy to Container Apps
