@@ -61,11 +61,31 @@ jobs:
           name: angular-artifact
           path: ./dist
 
-      - name: Install SWA CLI
-        run: npm install -g @azure/static-web-apps-cli
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy via SWA CLI
+      - name: Get storage key
         run: |
-          swa deploy ./dist \
-            --deployment-token ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }} \
-            --env production
+          KEY=$(az storage account keys list \
+            --account-name teampulsewebks \
+            --resource-group teampulse-rg \
+            --query "[0].value" -o tsv)
+          echo "STORAGE_KEY=$KEY" >> $GITHUB_ENV
+
+      - name: Clear existing files
+        run: |
+          az storage blob delete-batch \
+            --account-name teampulsewebks \
+            --source '$web' \
+            --account-key ${{ env.STORAGE_KEY }} || true
+
+      - name: Upload to Azure Storage
+        run: |
+          az storage blob upload-batch \
+            --account-name teampulsewebks \
+            --destination '$web' \
+            --source ./dist \
+            --account-key ${{ env.STORAGE_KEY }} \
+            --overwrite
