@@ -83,6 +83,11 @@ The default `environment.ts` points API at `http://localhost:5000/api`.
 
 ## Running EF Migrations Manually
 
+Install the EF Core CLI tool first if you haven't already:
+```bash
+dotnet tool install --global dotnet-ef
+```
+
 ```bash
 cd TeamPulse.API
 

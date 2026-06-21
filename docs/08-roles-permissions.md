@@ -53,11 +53,13 @@ Lower rank number = more senior / more permissions.
 
 ## API-Level Role Checks
 
+> **Important:** The role strings in the API HashSets use a different naming convention than the roles created through the Add Member UI. The API uses generic hyphenated names (`senior-manager`, `audit-manager`) while the frontend ROLE_GROUPS uses specific underscore names (`senior_manager_audit`, `manager_audit`). A user created via the UI with role `manager_audit` would be treated as a tier-4 associate by the API (not found in WriteTaskRoles), and would only see their own tasks. This is a known inconsistency. Use `admin` or `sub-admin` for full management access.
+
 ### TaskController
 
 | Action | Allowed roles |
 |--------|--------------|
-| GET all tasks | Any authenticated (filtered by role) |
+| GET all tasks | Any authenticated (filtered by role for non-managers) |
 | POST task | owner, admin, sub-admin, senior-manager, managing-partner, partner, manager, audit-manager, tax-manager, compliance-manager |
 | PUT task | Same as POST |
 | DELETE task | owner, admin, sub-admin, senior-manager, managing-partner, partner |
@@ -91,9 +93,9 @@ Lower rank number = more senior / more permissions.
 
 The owner is a hidden super-admin account that:
 - Has rank 0 (above all other roles)
-- Is never shown in the Team Directory
 - Can never be created through the UI — only via env vars at Container App startup
 - Has every permission in the system
+- Does appear in Team Directory (GET /api/user returns all users including owner); there is no UI-level filter for the owner role
 
 **Setup:** Set these on the Container App:
 ```

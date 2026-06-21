@@ -61,7 +61,7 @@ Feature branch
 
 | Job | Runs when | Config used | Deploys to |
 |-----|-----------|-------------|-----------|
-| `Build` | Always (PR) | `production` | — (validation only) |
+| `Build` | Always (push + PR) | `production` | — (validation only) |
 | `Deploy → Staging` | Push to `develop` | `staging` | `teampulsewebstg` blob storage `$web` |
 | `Deploy → Production` | Push to `main` | `production` | `teampulsewebks` blob storage `$web` |
 
@@ -112,6 +112,18 @@ Go to: `github.com/rohitsharma9874/TeamPulse → Settings → Environments`
 6. Go to: `github.com/rohitsharma9874/TeamPulse → Actions → [the run] → Review deployments`
 7. Click **Approve** → production deployment proceeds
 8. Deployment takes ~5 minutes
+
+---
+
+## First-Time Pipeline Run — Prerequisites
+
+The pipelines assume the Azure resources already exist. If you run the pipeline before creating the Container Apps or storage accounts, the deploy jobs will fail.
+
+**Order of operations for a fresh setup:**
+1. Create all Azure resources (see [03-azure-infrastructure.md](03-azure-infrastructure.md))
+2. Attach ACR credentials to both Container Apps (`az containerapp registry set`)
+3. Add GitHub environment secrets to both `staging` and `production` environments
+4. Then push to `develop` to trigger the first staging deploy
 
 ---
 
