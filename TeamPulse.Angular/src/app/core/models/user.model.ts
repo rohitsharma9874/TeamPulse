@@ -73,6 +73,7 @@ export interface UpdateProfileRequest {
 }
 
 export const ROLE_HIERARCHY: Record<string, number> = {
+  owner: 0,
   admin: 1,
   'sub-admin': 2,
   'senior-manager': 3,
@@ -96,6 +97,7 @@ export const ROLE_HIERARCHY: Record<string, number> = {
 };
 
 export const ROLE_LABELS: Record<string, string> = {
+  owner: 'Owner',
   admin: 'Admin',
   'sub-admin': 'Sub Admin',
   'senior-manager': 'Senior Manager',
