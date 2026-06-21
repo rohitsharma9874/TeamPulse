@@ -2,7 +2,7 @@ name: Angular
 
 on:
   push:
-    branches: [main]
+    branches: [develop, main]
     paths:
       - 'TeamPulse.Angular/**'
       - '.github/workflows/angular.yml'
@@ -16,9 +16,12 @@ env:
   NODE_VERSION: '22.x'
 
 jobs:
+
+  # ── Build validation (PRs only) ───────────────────────────────────────────
   build:
     name: Build
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
 
     steps:
       - uses: actions/checkout@v4
@@ -34,39 +37,101 @@ jobs:
         working-directory: TeamPulse.Angular
         run: npm ci --legacy-peer-deps
 
-      - name: Build
+      - name: Build (production config)
         working-directory: TeamPulse.Angular
         run: npx ng build --configuration production
         env:
           NODE_OPTIONS: '--max-old-space-size=4096'
 
-      - name: Upload artifact
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        uses: actions/upload-artifact@v4
-        with:
-          name: angular-artifact
-          path: TeamPulse.Angular/dist/team-pulse.angular/browser
-
-  deploy:
-    name: Deploy to Azure
+  # ── Deploy to Staging (develop push, no approval needed) ─────────────────
+  deploy-staging:
+    name: Deploy → Staging
     runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment: production
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment: staging
 
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          name: angular-artifact
-          path: ./dist
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: TeamPulse.Angular/package-lock.json
+
+      - name: Install dependencies
+        working-directory: TeamPulse.Angular
+        run: npm ci --legacy-peer-deps
+
+      - name: Build (staging config)
+        working-directory: TeamPulse.Angular
+        run: npx ng build --configuration staging
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
 
       - name: Login to Azure
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Get storage key
+      - name: Get staging storage key
+        run: |
+          KEY=$(az storage account keys list \
+            --account-name teampulsewebstg \
+            --resource-group teampulse-rg \
+            --query "[0].value" -o tsv)
+          echo "STORAGE_KEY=$KEY" >> $GITHUB_ENV
+
+      - name: Clear existing staging files
+        run: |
+          az storage blob delete-batch \
+            --account-name teampulsewebstg \
+            --source '$web' \
+            --account-key ${{ env.STORAGE_KEY }} || true
+
+      - name: Upload to staging storage
+        run: |
+          az storage blob upload-batch \
+            --account-name teampulsewebstg \
+            --destination '$web' \
+            --source TeamPulse.Angular/dist/team-pulse.angular/browser \
+            --account-key ${{ env.STORAGE_KEY }} \
+            --overwrite
+
+  # ── Deploy to Production (main push, requires manual approval) ────────────
+  deploy-production:
+    name: Deploy → Production
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: TeamPulse.Angular/package-lock.json
+
+      - name: Install dependencies
+        working-directory: TeamPulse.Angular
+        run: npm ci --legacy-peer-deps
+
+      - name: Build (production config)
+        working-directory: TeamPulse.Angular
+        run: npx ng build --configuration production
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get production storage key
         run: |
           KEY=$(az storage account keys list \
             --account-name teampulsewebks \
@@ -74,18 +139,18 @@ jobs:
             --query "[0].value" -o tsv)
           echo "STORAGE_KEY=$KEY" >> $GITHUB_ENV
 
-      - name: Clear existing files
+      - name: Clear existing production files
         run: |
           az storage blob delete-batch \
             --account-name teampulsewebks \
             --source '$web' \
             --account-key ${{ env.STORAGE_KEY }} || true
 
-      - name: Upload to Azure Storage
+      - name: Upload to production storage
         run: |
           az storage blob upload-batch \
             --account-name teampulsewebks \
             --destination '$web' \
-            --source ./dist \
+            --source TeamPulse.Angular/dist/team-pulse.angular/browser \
             --account-key ${{ env.STORAGE_KEY }} \
             --overwrite
