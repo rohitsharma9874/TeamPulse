@@ -17,7 +17,7 @@ namespace TeamPulse.Api.Controllers
 
         private static readonly HashSet<string> WriteRoles = new(StringComparer.OrdinalIgnoreCase)
         {
-            "admin", "sub-admin",
+            "owner", "admin", "sub-admin",
             "senior-manager", "managing-partner", "partner",
             "manager", "audit-manager", "tax-manager", "compliance-manager"
         };

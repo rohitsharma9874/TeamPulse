@@ -38,7 +38,7 @@ namespace TeamPulse.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
         {
-            if (CurrentUserRole != "admin" && CurrentUserRole != "sub-admin")
+            if (CurrentUserRole != "owner" && CurrentUserRole != "admin" && CurrentUserRole != "sub-admin")
                 return Forbid();
 
             var registerRequest = new RegisterUserRequest(
@@ -76,7 +76,7 @@ namespace TeamPulse.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(string id)
         {
-            if (CurrentUserRole != "admin" && CurrentUserRole != "sub-admin")
+            if (CurrentUserRole != "owner" && CurrentUserRole != "admin" && CurrentUserRole != "sub-admin")
                 return Forbid();
 
             var user = await _userRepo.GetByIdAsync(id);
@@ -90,7 +90,7 @@ namespace TeamPulse.Api.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateProfile(string id, [FromBody] UpdateProfileRequest request)
         {
-            if (id != CurrentUserId && CurrentUserRole != "admin" && CurrentUserRole != "sub-admin")
+            if (id != CurrentUserId && CurrentUserRole != "owner" && CurrentUserRole != "admin" && CurrentUserRole != "sub-admin")
                 return Forbid();
 
             var user = await _userRepo.GetByIdAsync(id);

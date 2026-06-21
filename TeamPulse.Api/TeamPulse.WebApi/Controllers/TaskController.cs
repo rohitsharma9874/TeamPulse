@@ -14,21 +14,18 @@ namespace TeamPulse.Api.Controllers
     {
         private readonly ITaskRepository _taskRepo;
 
-        // Roles that may view all tasks in the company (tiers 1–3)
         private static readonly HashSet<string> AllTaskRoles = new(StringComparer.OrdinalIgnoreCase)
         {
-            "admin", "sub-admin",
+            "owner", "admin", "sub-admin",
             "senior-manager", "managing-partner", "partner",
             "manager", "audit-manager", "tax-manager", "compliance-manager"
         };
 
-        // Roles that may create and edit tasks (tiers 1–3, same as AllTaskRoles)
         private static readonly HashSet<string> WriteTaskRoles = AllTaskRoles;
 
-        // Roles that may delete tasks (tiers 1–2 only)
         private static readonly HashSet<string> DeleteTaskRoles = new(StringComparer.OrdinalIgnoreCase)
         {
-            "admin", "sub-admin",
+            "owner", "admin", "sub-admin",
             "senior-manager", "managing-partner", "partner"
         };
 
