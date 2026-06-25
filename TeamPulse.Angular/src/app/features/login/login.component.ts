@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { ApiService } from '../../core/services/api.service';
 
 @Component({
   standalone: true,
@@ -25,10 +26,12 @@ export class LoginComponent implements OnInit {
     private auth: AuthService,
     private router: Router,
     private route: ActivatedRoute,
+    private api: ApiService,
   ) {}
 
   ngOnInit(): void {
     this.timeoutNotice = this.route.snapshot.queryParamMap.get('reason') === 'timeout';
+    this.api.ping();
   }
 
   submit(): void {

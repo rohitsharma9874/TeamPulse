@@ -278,7 +278,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       activities: this.api.getActivities(),
     }).subscribe({
       next: ({ users, tasks, activities }) => {
-        this.users      = users      ?? [];
+        this.users      = (users ?? []).filter(u => u.role?.toLowerCase() !== 'owner');
         this.tasks      = tasks      ?? [];
         this.activities = activities ?? [];
         this.loading    = false;
