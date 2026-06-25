@@ -26,7 +26,7 @@
         <a class="forgot-link" routerLink="/forgot-password">Forgot password?</a>
       </div>
       <button type="submit" [disabled]="loading || form.invalid">
-        {{ loading ? 'Signing in…' : 'Sign In' }}
+        {{ loading ? loadingMessage : 'Sign In' }}
       </button>
     </form>
 
