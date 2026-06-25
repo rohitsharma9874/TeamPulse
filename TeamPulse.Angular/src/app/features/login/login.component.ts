@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
+import { Observable, of, switchMap, catchError, shareReplay, tap } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
 
@@ -19,7 +20,11 @@ export class LoginComponent implements OnInit {
   });
   error = '';
   loading = false;
+  loadingMessage = 'Connecting…';
   timeoutNotice = false;
+
+  private warmUpReady = false;
+  private warmUp$!: Observable<unknown>;
 
   constructor(
     private fb: FormBuilder,
@@ -31,15 +36,26 @@ export class LoginComponent implements OnInit {
 
   ngOnInit(): void {
     this.timeoutNotice = this.route.snapshot.queryParamMap.get('reason') === 'timeout';
-    this.api.ping();
+    this.warmUp$ = this.api.ping().pipe(
+      catchError(() => of(null)),
+      tap(() => { this.warmUpReady = true; }),
+      shareReplay(1),
+    );
+    this.warmUp$.subscribe();
   }
 
   submit(): void {
     if (this.form.invalid) return;
     this.loading = true;
+    this.loadingMessage = 'Connecting…';
     this.error = '';
     this.timeoutNotice = false;
-    this.auth.login(this.form.getRawValue()).subscribe({
+
+    const proceed$ = this.warmUpReady ? of(null) : this.warmUp$;
+    proceed$.pipe(
+      tap(() => { this.loadingMessage = 'Signing in…'; }),
+      switchMap(() => this.auth.login(this.form.getRawValue())),
+    ).subscribe({
       next: () => this.router.navigate(['/dashboard']),
       error: () => {
         this.error = 'Invalid username or password';
