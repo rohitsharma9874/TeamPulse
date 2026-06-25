@@ -70,7 +70,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<TeamPulseDbContext>();
-    db.Database.Migrate();
+    await db.Database.MigrateAsync();
     await SeedAsync(db, app.Configuration);
 }
 
