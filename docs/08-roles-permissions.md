@@ -95,7 +95,7 @@ The owner is a hidden super-admin account that:
 - Has rank 0 (above all other roles)
 - Can never be created through the UI — only via env vars at Container App startup
 - Has every permission in the system
-- Does appear in Team Directory (GET /api/user returns all users including owner); there is no UI-level filter for the owner role
+- Is filtered out of the Team Directory and all UI user lists — the dashboard filters `role === 'owner'` client-side after the API response
 
 **Setup:** Set these on the Container App:
 ```

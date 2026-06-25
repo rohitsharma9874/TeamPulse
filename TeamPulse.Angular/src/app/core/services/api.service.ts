@@ -15,6 +15,10 @@ export class ApiService {
 
   constructor(private http: HttpClient) {}
 
+  ping(): void {
+    this.http.get(`${this.base}/health`).subscribe({ error: () => {} });
+  }
+
   // Users
   getUsers(): Observable<User[]> {
     return this.http.get<User[]>(`${this.base}/user`);
