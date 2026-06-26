@@ -1,13 +1,21 @@
 using Microsoft.EntityFrameworkCore;
 using TeamPulse.Domain.Common;
 using TeamPulse.Domain.Entities;
+using TeamPulse.Infrastructure.Services;
 
 namespace TeamPulse.Infrastructure.Data
 {
     public class TeamPulseDbContext : DbContext
     {
-        public TeamPulseDbContext(DbContextOptions<TeamPulseDbContext> options) : base(options) { }
+        private readonly TenantContext _tenantContext;
 
+        public TeamPulseDbContext(DbContextOptions<TeamPulseDbContext> options, TenantContext tenantContext)
+            : base(options)
+        {
+            _tenantContext = tenantContext;
+        }
+
+        public DbSet<Tenant> Tenants { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<TaskItem> Tasks { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
@@ -19,11 +27,26 @@ namespace TeamPulse.Infrastructure.Data
         {
             base.OnModelCreating(modelBuilder);
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(TeamPulseDbContext).Assembly);
-            modelBuilder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
-            modelBuilder.Entity<TaskItem>().HasQueryFilter(t => !t.IsDeleted);
-            modelBuilder.Entity<TaskDocument>().HasQueryFilter(d => !d.IsDeleted);
-            modelBuilder.Entity<MemberDocument>().HasQueryFilter(d => !d.IsDeleted);
-            modelBuilder.Entity<PaymentTransaction>().HasQueryFilter(p => !p.IsDeleted);
+
+            // Tenant table — no soft delete, just IsActive
+            modelBuilder.Entity<Tenant>().HasKey(t => t.Id);
+
+            // Global query filters: soft-delete + tenant isolation.
+            // TenantId == null means no filter (seeding, platform-admin).
+            modelBuilder.Entity<User>().HasQueryFilter(u =>
+                !u.IsDeleted && (_tenantContext.TenantId == null || u.CompanyId == _tenantContext.TenantId));
+
+            modelBuilder.Entity<TaskItem>().HasQueryFilter(t =>
+                !t.IsDeleted && (_tenantContext.TenantId == null || t.CompanyId == _tenantContext.TenantId));
+
+            modelBuilder.Entity<TaskDocument>().HasQueryFilter(d =>
+                !d.IsDeleted && (_tenantContext.TenantId == null || d.CompanyId == _tenantContext.TenantId));
+
+            modelBuilder.Entity<MemberDocument>().HasQueryFilter(d =>
+                !d.IsDeleted && (_tenantContext.TenantId == null || d.CompanyId == _tenantContext.TenantId));
+
+            modelBuilder.Entity<PaymentTransaction>().HasQueryFilter(p =>
+                !p.IsDeleted && (_tenantContext.TenantId == null || p.CompanyId == _tenantContext.TenantId));
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

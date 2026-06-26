@@ -4,7 +4,7 @@
       <span class="logo-tp">TP</span>
       <div class="logo-text">
         <h1>TeamPulse</h1>
-        <p>KPA & Co. — Workforce Intelligence</p>
+        <p>Enter your company code to continue</p>
       </div>
     </div>
 
@@ -13,6 +13,10 @@
     </div>
 
     <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="field">
+        <label>Company Code</label>
+        <input formControlName="tenantId" type="text" placeholder="e.g. KPA001" autocomplete="organization" />
+      </div>
       <div class="field">
         <label>Username</label>
         <input formControlName="username" type="text" placeholder="Enter username" autocomplete="username" />

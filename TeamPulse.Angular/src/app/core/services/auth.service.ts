@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, switchMap, tap } from 'rxjs';
 import { LoginRequest, LoginResponse } from '../models/auth.model';
 import { User } from '../models/user.model';
 import { environment } from '../../../environments/environment';
+import { TenantService } from './tenant.service';
 
 const TOKEN_KEY = 'tp_token';
 const USER_KEY = 'tp_user';
@@ -14,7 +15,11 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(this.loadUser());
   currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+    private tenantService: TenantService,
+  ) {}
 
   get currentUser(): User | null {
     return this.currentUserSubject.value;
@@ -45,6 +50,8 @@ export class AuthService {
         };
         sessionStorage.setItem(USER_KEY, JSON.stringify(user));
         this.currentUserSubject.next(user);
+        // Load tenant branding immediately after login
+        this.tenantService.loadForTenant(response.companyId);
       })
     );
   }
@@ -58,6 +65,7 @@ export class AuthService {
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(USER_KEY);
     this.currentUserSubject.next(null);
+    this.tenantService.reset();
     this.router.navigate(['/login'], {});
   }
 

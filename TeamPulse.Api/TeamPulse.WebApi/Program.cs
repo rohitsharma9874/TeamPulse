@@ -6,6 +6,7 @@ using Scalar.AspNetCore;
 using TeamPulse.Domain.Entities;
 using TeamPulse.Infrastructure;
 using TeamPulse.Infrastructure.Data;
+using TeamPulse.WebApi.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -88,6 +89,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("CorsPolicy");
 app.UseAuthentication();
+app.UseMiddleware<TenantMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 
@@ -96,6 +98,20 @@ app.Run();
 static async Task SeedAsync(TeamPulseDbContext db, IConfiguration config)
 {
     const string companyId = "KPA001";
+
+    // Seed the KPA001 tenant if it doesn't exist yet
+    if (!db.Tenants.Any(t => t.Id == companyId))
+    {
+        db.Tenants.Add(new Tenant
+        {
+            Id        = companyId,
+            Name      = "KPA & Co.",
+            Tagline   = "Workforce Intelligence",
+            IsActive  = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+    }
 
     // Hidden owner account — credentials supplied via Owner__Username / Owner__Password env vars
     var ownerUsername = config["Owner:Username"];

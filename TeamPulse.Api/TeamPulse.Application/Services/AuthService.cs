@@ -18,9 +18,9 @@ namespace TeamPulse.Application.Services
             _email = email;
         }
 
-        public async Task<User?> ValidateCredentialsAsync(string username, string password)
+        public async Task<User?> ValidateCredentialsAsync(string username, string password, string tenantId)
         {
-            var user = await _users.GetByUsernameAsync(username);
+            var user = await _users.GetByUsernameAndTenantAsync(username, tenantId);
             if (user is null || user.IsDeleted) return null;
 
             // Support plain-text dev seed passwords (no BCrypt prefix) and hashed passwords

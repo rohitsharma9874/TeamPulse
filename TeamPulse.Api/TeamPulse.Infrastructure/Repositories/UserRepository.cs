@@ -12,6 +12,10 @@ namespace TeamPulse.Infrastructure.Repositories
         public async Task<User?> GetByUsernameAsync(string username) =>
             await _set.FirstOrDefaultAsync(u => u.Username == username);
 
+        // Used at login time — explicitly scopes by tenantId since TenantContext is not yet populated.
+        public async Task<User?> GetByUsernameAndTenantAsync(string username, string tenantId) =>
+            await _set.FirstOrDefaultAsync(u => u.Username == username && u.CompanyId == tenantId);
+
         public async Task<User?> GetByEmailAsync(string email) =>
             await _set.FirstOrDefaultAsync(u => u.Email == email);
 

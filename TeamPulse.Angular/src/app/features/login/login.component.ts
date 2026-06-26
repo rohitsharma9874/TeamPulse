@@ -15,6 +15,7 @@ import { ApiService } from '../../core/services/api.service';
 })
 export class LoginComponent implements OnInit {
   form = this.fb.nonNullable.group({
+    tenantId: ['', Validators.required],
     username: ['', Validators.required],
     password: ['', Validators.required],
   });
@@ -51,14 +52,15 @@ export class LoginComponent implements OnInit {
     this.error = '';
     this.timeoutNotice = false;
 
+    const { tenantId, username, password } = this.form.getRawValue();
     const proceed$ = this.warmUpReady ? of(null) : this.warmUp$;
     proceed$.pipe(
       tap(() => { this.loadingMessage = 'Signing in…'; }),
-      switchMap(() => this.auth.login(this.form.getRawValue())),
+      switchMap(() => this.auth.login({ tenantId, username, password })),
     ).subscribe({
       next: () => this.router.navigate(['/dashboard']),
       error: () => {
-        this.error = 'Invalid username or password';
+        this.error = 'Invalid company code, username, or password';
         this.loading = false;
       },
     });

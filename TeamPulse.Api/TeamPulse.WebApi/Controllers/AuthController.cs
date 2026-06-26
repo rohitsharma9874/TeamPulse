@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using TeamPulse.Application.DTOs.Auth;
 using TeamPulse.Application.Interfaces;
+using TeamPulse.Infrastructure.Data;
 
 namespace TeamPulse.Api.Controllers
 {
@@ -11,20 +13,30 @@ namespace TeamPulse.Api.Controllers
         private readonly IAuthService _authService;
         private readonly ITokenService _tokenService;
         private readonly IConfiguration _config;
+        private readonly TeamPulseDbContext _db;
 
-        public AuthController(IAuthService authService, ITokenService tokenService, IConfiguration config)
+        public AuthController(IAuthService authService, ITokenService tokenService,
+            IConfiguration config, TeamPulseDbContext db)
         {
-            _authService   = authService;
-            _tokenService  = tokenService;
-            _config        = config;
+            _authService  = authService;
+            _tokenService = tokenService;
+            _config       = config;
+            _db           = db;
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var user = await _authService.ValidateCredentialsAsync(request.Username, request.Password);
+            // Validate tenant exists and is active
+            var tenant = await _db.Tenants
+                .FirstOrDefaultAsync(t => t.Id == request.TenantId && t.IsActive);
+            if (tenant is null)
+                return Unauthorized(new { message = "Invalid company code, username, or password" });
+
+            var user = await _authService.ValidateCredentialsAsync(
+                request.Username, request.Password, request.TenantId);
             if (user is null)
-                return Unauthorized(new { message = "Invalid username or password" });
+                return Unauthorized(new { message = "Invalid company code, username, or password" });
 
             var token = _tokenService.GenerateToken(user);
             var response = new LoginResponse(

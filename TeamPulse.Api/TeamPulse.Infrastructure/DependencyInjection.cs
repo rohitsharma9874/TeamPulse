@@ -6,6 +6,7 @@ using TeamPulse.Application.Services;
 using TeamPulse.Infrastructure.Data;
 using TeamPulse.Infrastructure.Repositories;
 using TeamPulse.Infrastructure.Services;
+using TenantContext = TeamPulse.Infrastructure.Services.TenantContext;
 
 namespace TeamPulse.Infrastructure
 {
@@ -13,6 +14,9 @@ namespace TeamPulse.Infrastructure
     {
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
+            services.AddScoped<TenantContext>();
+            services.AddHttpContextAccessor();
+
             services.AddDbContext<TeamPulseDbContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"),
                     sql => sql.MigrationsAssembly("TeamPulse.Infrastructure")));

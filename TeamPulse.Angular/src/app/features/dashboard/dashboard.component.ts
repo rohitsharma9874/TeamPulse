@@ -8,6 +8,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { InactivityService } from '../../core/services/inactivity.service';
+import { TenantService } from '../../core/services/tenant.service';
 import { PermissionService, AppPermissions, getRoleTier } from '../../core/services/permission.service';
 import { User, CreateUserRequest, UpdateProfileRequest, ROLE_LABELS, ROLE_HIERARCHY } from '../../core/models/user.model';
 import { Task, TaskRequest, PRIORITY_ORDER } from '../../core/models/task.model';
@@ -216,6 +217,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private permService: PermissionService,
     private inactivity: InactivityService,
     private cdr: ChangeDetectorRef,
+    public tenantService: TenantService,
   ) {}
 
   ngOnInit(): void {
