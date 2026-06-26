@@ -19,6 +19,9 @@ namespace TeamPulse.Infrastructure.Repositories
         public async Task<User?> GetByEmailAsync(string email) =>
             await _set.FirstOrDefaultAsync(u => u.Email == email);
 
+        public async Task<User?> GetByEmailAndTenantAsync(string email, string tenantId) =>
+            await _set.FirstOrDefaultAsync(u => u.Email == email && u.CompanyId == tenantId);
+
         public async Task<User?> GetByResetTokenAsync(string token) =>
             await _set.FirstOrDefaultAsync(u =>
                 u.PasswordResetToken == token &&

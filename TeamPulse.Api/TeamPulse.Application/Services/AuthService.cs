@@ -56,9 +56,9 @@ namespace TeamPulse.Application.Services
             return user;
         }
 
-        public async Task<bool> InitiatePasswordResetAsync(string email, string resetLink)
+        public async Task<bool> InitiatePasswordResetAsync(string email, string tenantId, string resetLink)
         {
-            var user = await _users.GetByEmailAsync(email);
+            var user = await _users.GetByEmailAndTenantAsync(email, tenantId);
             if (user is null || user.IsDeleted) return false;
 
             // Generate a secure URL-safe token

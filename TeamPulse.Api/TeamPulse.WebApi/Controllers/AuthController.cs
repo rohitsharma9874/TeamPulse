@@ -51,10 +51,14 @@ namespace TeamPulse.Api.Controllers
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
         {
-            // Always return 200 to avoid exposing which emails are registered
+            // Always return 200 — do not expose whether the email or company code is valid
             var appUrl = _config["App:Url"] ?? "http://localhost:4200";
             var resetBase = $"{appUrl}/reset-password";
-            await _authService.InitiatePasswordResetAsync(request.Email, resetBase);
+
+            var tenant = await _db.Tenants.FirstOrDefaultAsync(t => t.Id == request.TenantId && t.IsActive);
+            if (tenant is not null)
+                await _authService.InitiatePasswordResetAsync(request.Email, request.TenantId, resetBase);
+
             return Ok(new { message = "If that email is registered, a reset link has been sent." });
         }
 

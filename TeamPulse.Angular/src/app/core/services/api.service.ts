@@ -156,8 +156,8 @@ export class ApiService {
   }
 
   // Password reset
-  forgotPassword(email: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.base}/auth/forgot-password`, { email });
+  forgotPassword(tenantId: string, email: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.base}/auth/forgot-password`, { tenantId, email });
   }
 
   resetPassword(token: string, newPassword: string): Observable<{ message: string }> {

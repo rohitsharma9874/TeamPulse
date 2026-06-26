@@ -13,7 +13,8 @@ import { ApiService } from '../../core/services/api.service';
 })
 export class ForgotPasswordComponent {
   form = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
+    tenantId: ['', Validators.required],
+    email:    ['', [Validators.required, Validators.email]],
   });
 
   loading  = false;
@@ -27,7 +28,8 @@ export class ForgotPasswordComponent {
     this.loading  = true;
     this.errorMsg = '';
 
-    this.api.forgotPassword(this.form.getRawValue().email).subscribe({
+    const { tenantId, email } = this.form.getRawValue();
+    this.api.forgotPassword(tenantId, email).subscribe({
       next: () => {
         this.loading = false;
         this.sent    = true;
