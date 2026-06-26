@@ -1,0 +1,150 @@
+<div class="pa-shell">
+
+  <!-- Header -->
+  <header class="pa-header">
+    <div class="pa-header-left">
+      <span class="pa-logo">TP</span>
+      <div>
+        <p class="pa-title">TeamPulse Platform</p>
+        <p class="pa-subtitle">Platform Administration</p>
+      </div>
+    </div>
+    <div class="pa-header-right">
+      <span class="pa-user">{{ auth.currentUser?.name }}</span>
+      <button class="btn-outline" (click)="logout()">Sign out</button>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="pa-main">
+
+    <div class="pa-toolbar">
+      <h2>Tenants <span class="pa-count">{{ tenants.length }}</span></h2>
+      <button class="btn-primary" (click)="openCreate()">+ Add Tenant</button>
+    </div>
+
+    <!-- Loading -->
+    <div class="pa-loading" *ngIf="loading">Loading tenants…</div>
+
+    <!-- Table -->
+    <div class="pa-table-wrap" *ngIf="!loading">
+      <table class="pa-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Company Name</th>
+            <th>Tagline</th>
+            <th>Users</th>
+            <th>Created</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let t of tenants" [class.inactive]="!t.isActive">
+            <td><code>{{ t.id }}</code></td>
+            <td>{{ t.name }}</td>
+            <td class="muted">{{ t.tagline }}</td>
+            <td>{{ t.userCount }}</td>
+            <td class="muted">{{ t.createdAt | date:'dd MMM yyyy' }}</td>
+            <td>
+              <span class="badge" [class.badge-active]="t.isActive" [class.badge-inactive]="!t.isActive">
+                {{ t.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td class="actions">
+              <button class="btn-sm" (click)="openEdit(t)" *ngIf="t.id !== 'PLATFORM'">Edit</button>
+              <button class="btn-sm btn-danger" (click)="toggle(t)"
+                *ngIf="t.id !== 'PLATFORM'">
+                {{ t.isActive ? 'Suspend' : 'Reactivate' }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="pa-empty" *ngIf="tenants.length === 0">No tenants found.</p>
+    </div>
+  </main>
+
+  <!-- Slide-over panel -->
+  <div class="pa-overlay" *ngIf="showForm" (click)="closeForm()"></div>
+  <aside class="pa-panel" *ngIf="showForm">
+    <div class="pa-panel-header">
+      <h3>{{ editingTenant ? 'Edit Tenant' : 'Add Tenant' }}</h3>
+      <button class="pa-close" (click)="closeForm()">✕</button>
+    </div>
+
+    <p class="pa-error" *ngIf="error">{{ error }}</p>
+
+    <!-- Create form -->
+    <form *ngIf="!editingTenant" [formGroup]="createForm" (ngSubmit)="saveCreate()">
+      <div class="pa-section-label">Company Details</div>
+      <div class="field">
+        <label>Company Code <span class="hint">3–10 uppercase letters/digits, e.g. ABC001</span></label>
+        <input formControlName="id" type="text" placeholder="ABC001" style="text-transform:uppercase" />
+      </div>
+      <div class="field">
+        <label>Company Name</label>
+        <input formControlName="name" type="text" placeholder="ABC Consulting" />
+      </div>
+      <div class="field">
+        <label>Tagline</label>
+        <input formControlName="tagline" type="text" placeholder="Your Finance Partner" />
+      </div>
+      <div class="field">
+        <label>Logo URL <span class="hint">optional</span></label>
+        <input formControlName="logoUrl" type="url" placeholder="https://..." />
+      </div>
+
+      <div class="pa-section-label" style="margin-top:1.5rem">First Admin Account</div>
+      <div class="field">
+        <label>Username</label>
+        <input formControlName="adminUsername" type="text" placeholder="admin" />
+      </div>
+      <div class="field">
+        <label>Password <span class="hint">min 8 characters</span></label>
+        <input formControlName="adminPassword" type="password" placeholder="••••••••" />
+      </div>
+      <div class="field">
+        <label>Full Name</label>
+        <input formControlName="adminName" type="text" placeholder="John Smith" />
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input formControlName="adminEmail" type="email" placeholder="admin@company.com" />
+      </div>
+
+      <div class="pa-panel-footer">
+        <button type="button" class="btn-outline" (click)="closeForm()">Cancel</button>
+        <button type="submit" class="btn-primary" [disabled]="saving || createForm.invalid">
+          {{ saving ? 'Creating…' : 'Create Tenant' }}
+        </button>
+      </div>
+    </form>
+
+    <!-- Edit form -->
+    <form *ngIf="editingTenant" [formGroup]="editForm" (ngSubmit)="saveEdit()">
+      <div class="field">
+        <label>Company Name</label>
+        <input formControlName="name" type="text" />
+      </div>
+      <div class="field">
+        <label>Tagline</label>
+        <input formControlName="tagline" type="text" />
+      </div>
+      <div class="field">
+        <label>Logo URL <span class="hint">optional</span></label>
+        <input formControlName="logoUrl" type="url" placeholder="https://..." />
+      </div>
+
+      <div class="pa-panel-footer">
+        <button type="button" class="btn-outline" (click)="closeForm()">Cancel</button>
+        <button type="submit" class="btn-primary" [disabled]="saving || editForm.invalid">
+          {{ saving ? 'Saving…' : 'Save Changes' }}
+        </button>
+      </div>
+    </form>
+  </aside>
+
+</div>

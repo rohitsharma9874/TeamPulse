@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
+import { PlatformAdminGuard } from './core/guards/platform-admin.guard';
 
 export const APP_ROUTES: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
@@ -19,6 +20,11 @@ export const APP_ROUTES: Routes = [
     path: 'dashboard',
     canActivate: [AuthGuard],
     loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent),
+  },
+  {
+    path: 'platform-admin',
+    canActivate: [PlatformAdminGuard],
+    loadComponent: () => import('./features/platform-admin/platform-admin.component').then(m => m.PlatformAdminComponent),
   },
   { path: '**', redirectTo: 'dashboard' },
 ];

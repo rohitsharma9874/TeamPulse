@@ -1,6 +1,27 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+
+export interface TenantRow {
+  id: string;
+  name: string;
+  tagline: string;
+  logoUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  userCount: number;
+}
+
+export interface CreateTenantRequest {
+  id: string;
+  name: string;
+  tagline: string;
+  logoUrl: string | null;
+  adminUsername: string;
+  adminPassword: string;
+  adminName: string;
+  adminEmail: string;
+}
 import { User, CreateUserRequest, UpdateProfileRequest } from '../models/user.model';
 import { Task, TaskRequest } from '../models/task.model';
 import { TaskDocument } from '../models/task-document.model';
@@ -115,6 +136,23 @@ export class ApiService {
 
   deletePaymentTransaction(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/payment-transaction/${id}`);
+  }
+
+  // Platform admin — tenant management
+  getTenants(): Observable<TenantRow[]> {
+    return this.http.get<TenantRow[]>(`${this.base}/tenant`);
+  }
+
+  createTenant(req: CreateTenantRequest): Observable<TenantRow> {
+    return this.http.post<TenantRow>(`${this.base}/tenant`, req);
+  }
+
+  updateTenant(id: string, req: { name: string; tagline: string; logoUrl: string | null }): Observable<TenantRow> {
+    return this.http.put<TenantRow>(`${this.base}/tenant/${id}`, req);
+  }
+
+  toggleTenant(id: string): Observable<{ id: string; isActive: boolean }> {
+    return this.http.patch<{ id: string; isActive: boolean }>(`${this.base}/tenant/${id}/toggle`, {});
   }
 
   // Password reset

@@ -1,0 +1,116 @@
+:host { display: block; height: 100vh; background: #f3f4f6; font-family: 'DM Sans', sans-serif; }
+
+/* Header */
+.pa-header {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #1B3A6B; color: #fff; padding: 0 2rem; height: 60px;
+}
+.pa-header-left { display: flex; align-items: center; gap: 1rem; }
+.pa-logo {
+  width: 36px; height: 36px; background: #C9A84C; color: #1B3A6B;
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.85rem;
+}
+.pa-title  { margin: 0; font-weight: 600; font-size: 1rem; }
+.pa-subtitle { margin: 0; font-size: 0.72rem; color: #93c5fd; }
+.pa-header-right { display: flex; align-items: center; gap: 1rem; }
+.pa-user { font-size: 0.875rem; color: #e2e8f0; }
+
+/* Main */
+.pa-main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+
+.pa-toolbar {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;
+  h2 { margin: 0; font-size: 1.25rem; color: #1B3A6B; font-weight: 600; }
+}
+.pa-count {
+  background: #e0e7ff; color: #3730a3; font-size: 0.75rem;
+  padding: 0.125rem 0.5rem; border-radius: 999px; margin-left: 0.5rem;
+}
+
+/* Table */
+.pa-table-wrap { background: #fff; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.08); overflow: hidden; }
+.pa-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.pa-table th {
+  background: #f8fafc; padding: 0.75rem 1rem; text-align: left;
+  font-size: 0.75rem; text-transform: uppercase; letter-spacing: .05em; color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+}
+.pa-table td { padding: 0.85rem 1rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+.pa-table tr:last-child td { border-bottom: none; }
+.pa-table tr.inactive td { opacity: 0.55; }
+.muted { color: #6b7280; }
+code { background: #f1f5f9; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.8rem; font-family: monospace; }
+
+/* Badges */
+.badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500; }
+.badge-active   { background: #d1fae5; color: #065f46; }
+.badge-inactive { background: #fee2e2; color: #991b1b; }
+
+.actions { display: flex; gap: 0.5rem; }
+.pa-empty  { padding: 2rem; text-align: center; color: #6b7280; }
+.pa-loading { padding: 3rem; text-align: center; color: #6b7280; }
+
+/* Buttons */
+.btn-primary {
+  background: #1B3A6B; color: #fff; border: none; border-radius: 8px;
+  padding: 0.5rem 1.25rem; font-size: 0.875rem; font-weight: 600; cursor: pointer;
+  &:hover:not(:disabled) { background: #2a5298; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+.btn-outline {
+  background: transparent; color: #1B3A6B; border: 1.5px solid #1B3A6B;
+  border-radius: 8px; padding: 0.5rem 1.25rem; font-size: 0.875rem; font-weight: 500; cursor: pointer;
+  &:hover { background: #eff6ff; }
+}
+.btn-sm {
+  background: #f1f5f9; color: #374151; border: 1px solid #e5e7eb;
+  border-radius: 6px; padding: 0.3rem 0.75rem; font-size: 0.8rem; cursor: pointer;
+  &:hover { background: #e2e8f0; }
+}
+.btn-danger { color: #dc2626; border-color: #fca5a5; &:hover { background: #fee2e2; } }
+
+/* Slide-over panel */
+.pa-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 100;
+}
+.pa-panel {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 440px;
+  background: #fff; z-index: 101; box-shadow: -4px 0 20px rgba(0,0,0,.15);
+  display: flex; flex-direction: column; overflow-y: auto;
+}
+.pa-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.25rem 1.5rem; border-bottom: 1px solid #e5e7eb;
+  h3 { margin: 0; font-size: 1.05rem; color: #1B3A6B; }
+}
+.pa-close {
+  background: none; border: none; font-size: 1.1rem; color: #6b7280; cursor: pointer;
+  &:hover { color: #111; }
+}
+.pa-section-label {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: .08em;
+  color: #6b7280; font-weight: 600; margin: 0.25rem 1.5rem 0.5rem;
+}
+.pa-error {
+  margin: 0.75rem 1.5rem 0; padding: 0.75rem 1rem;
+  background: #fee2e2; border-radius: 8px; color: #991b1b; font-size: 0.85rem;
+}
+.pa-panel-footer {
+  display: flex; gap: 0.75rem; justify-content: flex-end;
+  padding: 1.25rem 1.5rem; border-top: 1px solid #e5e7eb; margin-top: auto;
+}
+
+/* Form fields */
+.field {
+  padding: 0 1.5rem 1rem;
+  label {
+    display: block; font-size: 0.8rem; font-weight: 500; color: #374151; margin-bottom: 0.3rem;
+  }
+  input {
+    width: 100%; padding: 0.55rem 0.875rem; border: 1.5px solid #d1d5db;
+    border-radius: 8px; font-size: 0.875rem; box-sizing: border-box;
+    &:focus { outline: none; border-color: #1B3A6B; }
+  }
+}
+.hint { font-size: 0.72rem; color: #9ca3af; font-weight: 400; margin-left: 0.3rem; }

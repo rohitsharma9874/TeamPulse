@@ -58,7 +58,10 @@ export class LoginComponent implements OnInit {
       tap(() => { this.loadingMessage = 'Signing in…'; }),
       switchMap(() => this.auth.login({ tenantId, username, password })),
     ).subscribe({
-      next: () => this.router.navigate(['/dashboard']),
+      next: (res) => {
+        const dest = res.role === 'platform-admin' ? '/platform-admin' : '/dashboard';
+        this.router.navigate([dest]);
+      },
       error: () => {
         this.error = 'Invalid company code, username, or password';
         this.loading = false;

@@ -99,6 +99,43 @@ static async Task SeedAsync(TeamPulseDbContext db, IConfiguration config)
 {
     const string companyId = "KPA001";
 
+    // Seed the PLATFORM tenant (parent company) — never visible to regular tenants
+    if (!db.Tenants.Any(t => t.Id == "PLATFORM"))
+    {
+        db.Tenants.Add(new Tenant
+        {
+            Id        = "PLATFORM",
+            Name      = "TeamPulse Platform",
+            Tagline   = "Platform Administration",
+            IsActive  = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+    }
+
+    // Seed platform-admin user — credentials from PlatformAdmin__Username / PlatformAdmin__Password
+    var platformAdminUsername = config["PlatformAdmin:Username"];
+    var platformAdminPassword = config["PlatformAdmin:Password"];
+    if (!string.IsNullOrEmpty(platformAdminUsername) && !string.IsNullOrEmpty(platformAdminPassword))
+    {
+        if (!db.Users.Any(u => u.Username == platformAdminUsername && u.CompanyId == "PLATFORM"))
+        {
+            db.Users.Add(new User
+            {
+                Username     = platformAdminUsername,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(platformAdminPassword, 12),
+                Name         = "Platform Admin",
+                Email        = $"{platformAdminUsername}@teampulse.platform",
+                Role         = "platform-admin",
+                CompanyId    = "PLATFORM",
+                Department   = "Platform",
+                CreatedAt    = DateTime.UtcNow,
+                CreatedBy    = "system",
+            });
+            await db.SaveChangesAsync();
+        }
+    }
+
     // Seed the KPA001 tenant if it doesn't exist yet
     if (!db.Tenants.Any(t => t.Id == companyId))
     {
