@@ -187,9 +187,9 @@ static async Task SeedAsync(TeamPulseDbContext db, IConfiguration config)
     // Upsert demo users — self-healing on every deployment so staging/dev always have known credentials
     var demoPassword = BCrypt.Net.BCrypt.HashPassword("password", 12);
 
-    var existingAdmin = await db.Users.IgnoreQueryFilters()
+    var demoAdmin = await db.Users.IgnoreQueryFilters()
         .FirstOrDefaultAsync(u => u.CompanyId == companyId && u.Username == "admin");
-    if (existingAdmin is null)
+    if (demoAdmin is null)
     {
         db.Users.Add(new User
         {
@@ -206,11 +206,11 @@ static async Task SeedAsync(TeamPulseDbContext db, IConfiguration config)
             CreatedBy    = "system"
         });
     }
-    else { existingAdmin.PasswordHash = demoPassword; existingAdmin.IsDeleted = false; }
+    else { demoAdmin.PasswordHash = demoPassword; demoAdmin.IsDeleted = false; }
 
-    var existingManager = await db.Users.IgnoreQueryFilters()
+    var demoManager = await db.Users.IgnoreQueryFilters()
         .FirstOrDefaultAsync(u => u.CompanyId == companyId && u.Username == "srmanager");
-    if (existingManager is null)
+    if (demoManager is null)
     {
         db.Users.Add(new User
         {
@@ -227,11 +227,11 @@ static async Task SeedAsync(TeamPulseDbContext db, IConfiguration config)
             CreatedBy    = "system"
         });
     }
-    else { existingManager.PasswordHash = demoPassword; existingManager.IsDeleted = false; }
+    else { demoManager.PasswordHash = demoPassword; demoManager.IsDeleted = false; }
 
-    var existingTrainee = await db.Users.IgnoreQueryFilters()
+    var demoTrainee = await db.Users.IgnoreQueryFilters()
         .FirstOrDefaultAsync(u => u.CompanyId == companyId && u.Username == "trainee");
-    if (existingTrainee is null)
+    if (demoTrainee is null)
     {
         db.Users.Add(new User
         {
@@ -248,7 +248,7 @@ static async Task SeedAsync(TeamPulseDbContext db, IConfiguration config)
             CreatedBy    = "system"
         });
     }
-    else { existingTrainee.PasswordHash = demoPassword; existingTrainee.IsDeleted = false; }
+    else { demoTrainee.PasswordHash = demoPassword; demoTrainee.IsDeleted = false; }
 
     await db.SaveChangesAsync();
 
