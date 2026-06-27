@@ -5,11 +5,12 @@ import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { Observable, of, switchMap, catchError, shareReplay, tap } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 
 @Component({
   standalone: true,
   selector: 'app-login',
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, IconComponent],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
 })
@@ -23,6 +24,7 @@ export class LoginComponent implements OnInit {
   loading = false;
   loadingMessage = 'Connecting…';
   timeoutNotice = false;
+  showPassword = false;
 
   private warmUpReady = false;
   private warmUp$!: Observable<unknown>;

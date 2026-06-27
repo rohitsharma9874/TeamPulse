@@ -21,6 +21,7 @@ import { UserModalComponent, UserSavePayload } from './components/user-modal/use
 import { ProfileModalComponent } from './components/profile-modal/profile-modal.component';
 import { MemberDetailModalComponent } from './components/member-detail-modal/member-detail-modal.component';
 import { DatePickerComponent } from '../../shared/components/date-picker/date-picker.component';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 
 type NavSection    = 'overview' | 'tasks' | 'team' | 'activity' | 'deadlines' | 'performance' | 'alerts';
 type TasksTab      = 'list' | 'board' | 'guide';
@@ -36,7 +37,7 @@ interface OrgTier { label: string; rank: number; members: User[]; }
 @Component({
   standalone: true,
   selector: 'app-dashboard',
-  imports: [CommonModule, FormsModule, TaskModalComponent, KanbanComponent, UserModalComponent, ProfileModalComponent, MemberDetailModalComponent, DatePickerComponent],
+  imports: [CommonModule, FormsModule, TaskModalComponent, KanbanComponent, UserModalComponent, ProfileModalComponent, MemberDetailModalComponent, DatePickerComponent, IconComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss'],
 })
@@ -187,30 +188,30 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private buildNavGroups(): NavGroup[] {
     const p = this.perms;
     const workspaceItems: NavItem[] = [
-      { key: 'overview', label: 'Dashboard', icon: '📊', subItems: [
-        { tab: 'pulse',    label: 'Pulse',     icon: '💓' },
-        { tab: 'workload', label: 'Workload',  icon: '👥' },
-        ...(p.canViewBilling ? [{ tab: 'finances', label: 'Finances', icon: '💰' }] : []),
-        { tab: 'urgent',   label: 'Urgent',    icon: '🚨' },
+      { key: 'overview', label: 'Dashboard', icon: 'grid', subItems: [
+        { tab: 'pulse',    label: 'Pulse',     icon: 'activity' },
+        { tab: 'workload', label: 'Workload',  icon: 'users' },
+        ...(p.canViewBilling ? [{ tab: 'finances', label: 'Finances', icon: 'dollar-sign' }] : []),
+        { tab: 'urgent',   label: 'Urgent',    icon: 'alert-circle' },
       ]},
-      { key: 'tasks', label: 'Tasks', icon: '🗂️', subItems: [
-        { tab: 'list',  label: 'List',           icon: '📋' },
-        { tab: 'board', label: 'Board',          icon: '🗂️' },
-        { tab: 'guide', label: 'Workflow Guide', icon: '📖' },
+      { key: 'tasks', label: 'Tasks', icon: 'check-square', subItems: [
+        { tab: 'list',  label: 'List',           icon: 'list' },
+        { tab: 'board', label: 'Board',          icon: 'columns' },
+        { tab: 'guide', label: 'Workflow Guide', icon: 'book-open' },
       ]},
-      { key: 'deadlines', label: 'Deadlines', icon: '📅', badgeKey: 'overdue' },
+      { key: 'deadlines', label: 'Deadlines', icon: 'calendar', badgeKey: 'overdue' },
     ];
     const teamItems: NavItem[] = [
-      ...(p.canViewTeamDirectory ? [{ key: 'team' as NavSection, label: 'Team Directory', icon: '👥' }] : []),
-      ...(p.canViewPerformance   ? [{ key: 'performance' as NavSection, label: 'Performance', icon: '🏆', subItems: [
-        { tab: 'leaderboard', label: 'Leaderboard',  icon: '🥇' },
-        { tab: 'metrics',     label: 'Task Metrics', icon: '📈' },
-        ...(p.canViewBilling ? [{ tab: 'billing', label: 'Billing', icon: '💰' }] : []),
+      ...(p.canViewTeamDirectory ? [{ key: 'team' as NavSection, label: 'Team Directory', icon: 'users' }] : []),
+      ...(p.canViewPerformance   ? [{ key: 'performance' as NavSection, label: 'Performance', icon: 'bar-chart-2', subItems: [
+        { tab: 'leaderboard', label: 'Leaderboard',  icon: 'award' },
+        { tab: 'metrics',     label: 'Task Metrics', icon: 'trending-up' },
+        ...(p.canViewBilling ? [{ tab: 'billing', label: 'Billing', icon: 'credit-card' }] : []),
       ]}] : []),
     ];
     const monitorItems: NavItem[] = [
-      ...(p.canViewActivity ? [{ key: 'activity' as NavSection, label: 'Activity Feed', icon: '📜' }] : []),
-      ...(p.canViewAlerts   ? [{ key: 'alerts'   as NavSection, label: 'Alerts',        icon: '🔔', badgeKey: 'alerts' }] : []),
+      ...(p.canViewActivity ? [{ key: 'activity' as NavSection, label: 'Activity Feed', icon: 'scroll' }] : []),
+      ...(p.canViewAlerts   ? [{ key: 'alerts'   as NavSection, label: 'Alerts',        icon: 'bell', badgeKey: 'alerts' }] : []),
     ];
     return [
       { label: 'Workspace', items: workspaceItems },
@@ -694,9 +695,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     // ── Health KPIs ───────────────────────────────────────────────────────────
     this.cachedHealthKPIs = [
-      { label: 'Completion Rate',     value: totalTasks > 0 ? Math.round((completeCt / totalTasks) * 100) : 100,                                    icon: '✅', color: '#10b981' },
-      { label: 'Billing Recovery',    value: this._billedTotal > 0 ? Math.round((this._collectedTotal / this._billedTotal) * 100) : 100,             icon: '💰', color: '#3b82f6' },
-      { label: 'Zero-Overdue Target', value: pendingCt > 0 ? Math.round((1 - this.overdueCount / pendingCt) * 100) : 100,                           icon: '⏱️', color: '#f59e0b' },
+      { label: 'Completion Rate',     value: totalTasks > 0 ? Math.round((completeCt / totalTasks) * 100) : 100,                                    icon: 'check-circle', color: '#10b981' },
+      { label: 'Billing Recovery',    value: this._billedTotal > 0 ? Math.round((this._collectedTotal / this._billedTotal) * 100) : 100,             icon: 'dollar-sign',  color: '#3b82f6' },
+      { label: 'Zero-Overdue Target', value: pendingCt > 0 ? Math.round((1 - this.overdueCount / pendingCt) * 100) : 100,                           icon: 'clock',        color: '#f59e0b' },
     ];
 
     // ── Idle users ────────────────────────────────────────────────────────────
@@ -753,7 +754,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.perfUniqueDepts  = [...new Set(this.users.map(u => u.department ?? '').filter(Boolean))].sort();
   }
 
-  getMedalEmoji(index: number): string { return ['🥇', '🥈', '🥉'][index] ?? ''; }
 
   getScoreClass(score: number): string {
     if (score >= 70) return 'score-high';

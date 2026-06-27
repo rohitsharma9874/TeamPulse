@@ -29,13 +29,15 @@
             [class.nav-item--parent]="!!item.subItems"
             [class.nav-item--expanded]="item.subItems && activeSection === item.key"
             (click)="item.subItems ? navigate(item.key) : navigate(item.key)">
-            <span class="nav-icon">{{ item.icon }}</span>
+            <span class="nav-icon"><tp-icon [name]="item.icon" [size]="16"></tp-icon></span>
             <span class="nav-label">{{ item.label }}</span>
             <span class="nav-badge" *ngIf="item.badgeKey && getBadge(item.badgeKey) > 0">
               {{ getBadge(item.badgeKey) }}
             </span>
-            <span class="nav-chevron" *ngIf="item.subItems">
-              {{ activeSection === item.key ? '▾' : '▸' }}
+            <span class="nav-chevron" *ngIf="item.subItems"
+              [style.transform]="activeSection === item.key ? 'rotate(0)' : 'rotate(-90deg)'"
+              style="display:flex;transition:transform 0.2s">
+              <tp-icon name="chevron-down" [size]="12"></tp-icon>
             </span>
           </button>
           <!-- Sub-items (shown when parent is active) -->
@@ -45,7 +47,7 @@
                 class="nav-sub-item"
                 [class.active]="overviewTab === sub.tab"
                 (click)="navigateOverviewTab($any(sub.tab))">
-                <span class="nav-sub-icon">{{ sub.icon }}</span>
+                <span class="nav-sub-icon"><tp-icon [name]="sub.icon" [size]="14"></tp-icon></span>
                 <span class="nav-label">{{ sub.label }}</span>
               </button>
             </ng-container>
@@ -54,7 +56,7 @@
                 class="nav-sub-item"
                 [class.active]="tasksTab === sub.tab"
                 (click)="navigateTasksTab($any(sub.tab))">
-                <span class="nav-sub-icon">{{ sub.icon }}</span>
+                <span class="nav-sub-icon"><tp-icon [name]="sub.icon" [size]="14"></tp-icon></span>
                 <span class="nav-label">{{ sub.label }}</span>
               </button>
             </ng-container>
@@ -63,7 +65,7 @@
                 class="nav-sub-item"
                 [class.active]="perfTab === sub.tab"
                 (click)="navigatePerfTab($any(sub.tab))">
-                <span class="nav-sub-icon">{{ sub.icon }}</span>
+                <span class="nav-sub-icon"><tp-icon [name]="sub.icon" [size]="14"></tp-icon></span>
                 <span class="nav-label">{{ sub.label }}</span>
               </button>
             </ng-container>
@@ -85,10 +87,10 @@
       </div>
       <div class="sf-actions">
         <button class="sf-btn sf-btn--edit" (click)="profileModalVisible = true" title="Edit profile">
-          ✏️ Edit Profile
+          <tp-icon name="edit" [size]="13"></tp-icon> Edit Profile
         </button>
         <button class="sf-btn sf-btn--signout" (click)="logout()" title="Sign out">
-          ⏻ Sign Out
+          <tp-icon name="log-out" [size]="13"></tp-icon> Sign Out
         </button>
       </div>
     </div>
@@ -100,7 +102,9 @@
     <!-- Topbar -->
     <header class="topbar">
       <div class="topbar-left">
-        <button class="hamburger" (click)="sidebarOpen = !sidebarOpen" aria-label="Toggle menu">☰</button>
+        <button class="hamburger" (click)="sidebarOpen = !sidebarOpen" aria-label="Toggle menu">
+          <tp-icon name="menu" [size]="20"></tp-icon>
+        </button>
         <h1 class="topbar-title">{{ pageMeta[activeSection][0] }}</h1>
         <p class="topbar-sub">{{ pageMeta[activeSection][1] }}</p>
       </div>
@@ -110,13 +114,13 @@
           <span id="clock-display"></span>
         </div>
         <button class="btn-theme" (click)="toggleTheme()" [title]="isDark ? 'Light mode' : 'Dark mode'">
-          {{ isDark ? '☀️' : '🌙' }}
+          <tp-icon [name]="isDark ? 'sun' : 'moon'" [size]="16"></tp-icon>
         </button>
 
         <!-- Unified notification bell -->
         <div class="notif-wrapper">
           <button class="notif-bell" (click)="toggleNotif()" [class.notif-active]="notifOpen" title="Notifications">
-            🔔
+            <tp-icon name="bell" [size]="16"></tp-icon>
             <span class="notif-dot" *ngIf="notifTotalCount > 0">{{ notifTotalCount > 99 ? '99+' : notifTotalCount }}</span>
           </button>
           <div class="notif-dropdown" *ngIf="notifOpen" (click)="$event.stopPropagation()">
@@ -124,7 +128,7 @@
               <span>Notifications</span>
               <div class="notif-header-actions">
                 <button class="notif-mark-all" *ngIf="notifService.unreadCount > 0" (click)="notifMarkAll()">Mark all read</button>
-                <button class="notif-close" (click)="closeNotif()">✕</button>
+                <button class="notif-close" (click)="closeNotif()"><tp-icon name="x" [size]="14"></tp-icon></button>
               </div>
             </div>
             <div class="notif-list">
@@ -174,28 +178,28 @@
           <div class="pulse-section-label">At a Glance</div>
           <div class="pulse-kpi-strip">
             <div class="pulse-kpi">
-              <span class="pkpi-icon">📁</span>
+              <span class="pkpi-icon"><tp-icon name="folder" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">{{ visibleTasks.length }}</span>
                 <span class="pkpi-label">Total Matters</span>
               </div>
             </div>
             <div class="pulse-kpi pkpi-green">
-              <span class="pkpi-icon">✅</span>
+              <span class="pkpi-icon"><tp-icon name="check-circle" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">{{ completedTasks.length }}</span>
                 <span class="pkpi-label">Completed</span>
               </div>
             </div>
             <div class="pulse-kpi pkpi-amber">
-              <span class="pkpi-icon">⚡</span>
+              <span class="pkpi-icon"><tp-icon name="activity" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">{{ inProgressTasks.length }}</span>
                 <span class="pkpi-label">In Progress</span>
               </div>
             </div>
             <div class="pulse-kpi" [class.pkpi-red]="overdueTasks.length > 0">
-              <span class="pkpi-icon">⏰</span>
+              <span class="pkpi-icon"><tp-icon name="clock" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">{{ overdueTasks.length }}</span>
                 <span class="pkpi-label">Overdue</span>
@@ -205,14 +209,14 @@
               [class.pkpi-green]="teamHealthScore >= 70"
               [class.pkpi-amber]="teamHealthScore >= 40 && teamHealthScore < 70"
               [class.pkpi-red]="teamHealthScore < 40">
-              <span class="pkpi-icon">💓</span>
+              <span class="pkpi-icon"><tp-icon name="bar-chart-2" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">{{ teamHealthScore }}%</span>
                 <span class="pkpi-label">Team Health</span>
               </div>
             </div>
             <div class="pulse-kpi">
-              <span class="pkpi-icon">🚀</span>
+              <span class="pkpi-icon"><tp-icon name="trending-up" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">{{ weeklyVelocity }}/wk</span>
                 <span class="pkpi-label">Velocity</span>
@@ -243,28 +247,28 @@
           <!-- Team size + idle summary -->
           <div class="pulse-kpi-strip">
             <div class="pulse-kpi pkpi-blue">
-              <span class="pkpi-icon">👥</span>
+              <span class="pkpi-icon"><tp-icon name="users" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">{{ users.length }}</span>
                 <span class="pkpi-label">Team Members</span>
               </div>
             </div>
             <div class="pulse-kpi" [class.pkpi-amber]="idleUsersData.length > 0">
-              <span class="pkpi-icon">💤</span>
+              <span class="pkpi-icon"><tp-icon name="clock" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">{{ idleUsersData.length }}</span>
                 <span class="pkpi-label">Idle (no active tasks)</span>
               </div>
             </div>
             <div class="pulse-kpi pkpi-amber">
-              <span class="pkpi-icon">⚡</span>
+              <span class="pkpi-icon"><tp-icon name="activity" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">{{ inProgressTasks.length }}</span>
                 <span class="pkpi-label">Active Tasks</span>
               </div>
             </div>
             <div class="pulse-kpi pkpi-green">
-              <span class="pkpi-icon">🚀</span>
+              <span class="pkpi-icon"><tp-icon name="trending-up" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">{{ weeklyVelocity }}/wk</span>
                 <span class="pkpi-label">Velocity</span>
@@ -274,7 +278,7 @@
 
           <!-- Idle callout — shown prominently if anyone has nothing to do -->
           <div class="idle-callout" *ngIf="idleUsersData.length > 0">
-            <span class="idle-callout-icon">💤</span>
+            <span class="idle-callout-icon"><tp-icon name="clock" [size]="20"></tp-icon></span>
             <div>
               <p class="idle-callout-title">{{ idleUsersData.length }} member{{ idleUsersData.length > 1 ? 's have' : ' has' }} no active tasks right now</p>
               <p class="idle-callout-names">{{ idleUserNames }}</p>
@@ -354,21 +358,21 @@
           <!-- Finance KPI strip -->
           <div class="pulse-kpi-strip">
             <div class="pulse-kpi pkpi-blue">
-              <span class="pkpi-icon">📋</span>
+              <span class="pkpi-icon"><tp-icon name="file-text" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">₹{{ billedTotal | number:'1.0-0' }}</span>
                 <span class="pkpi-label">Total Billed</span>
               </div>
             </div>
             <div class="pulse-kpi pkpi-green">
-              <span class="pkpi-icon">✅</span>
+              <span class="pkpi-icon"><tp-icon name="check-circle" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">₹{{ collectedTotal | number:'1.0-0' }}</span>
                 <span class="pkpi-label">Collected</span>
               </div>
             </div>
             <div class="pulse-kpi" [class.pkpi-red]="pendingBilling > 0" [class.pkpi-green]="pendingBilling === 0">
-              <span class="pkpi-icon">⏳</span>
+              <span class="pkpi-icon"><tp-icon name="clock" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">₹{{ pendingBilling | number:'1.0-0' }}</span>
                 <span class="pkpi-label">Outstanding</span>
@@ -378,21 +382,21 @@
               [class.pkpi-green]="billingRecovery >= 80"
               [class.pkpi-amber]="billingRecovery >= 50 && billingRecovery < 80"
               [class.pkpi-red]="billingRecovery < 50">
-              <span class="pkpi-icon">📈</span>
+              <span class="pkpi-icon"><tp-icon name="trending-up" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">{{ billingRecovery }}%</span>
                 <span class="pkpi-label">Recovery Rate</span>
               </div>
             </div>
             <div class="pulse-kpi pkpi-amber">
-              <span class="pkpi-icon">🕐</span>
+              <span class="pkpi-icon"><tp-icon name="clock" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">{{ pendingPaymentTasks.length }}</span>
                 <span class="pkpi-label">Pending Invoices</span>
               </div>
             </div>
             <div class="pulse-kpi" style="--pkpi-accent:#f59e0b">
-              <span class="pkpi-icon">💛</span>
+              <span class="pkpi-icon"><tp-icon name="dollar-sign" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">{{ partlyPaidTasks.length }}</span>
                 <span class="pkpi-label">Partly Paid</span>
@@ -480,21 +484,21 @@
               </div>
             </div>
             <div class="pulse-kpi" [class.pkpi-red]="cachedCriticalAlerts.length > 0" [class.pkpi-green]="cachedCriticalAlerts.length === 0">
-              <span class="pkpi-icon">🚨</span>
+              <span class="pkpi-icon"><tp-icon name="alert-circle" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">{{ cachedCriticalAlerts.length }}</span>
                 <span class="pkpi-label">Critical (&gt;7d overdue)</span>
               </div>
             </div>
             <div class="pulse-kpi" [class.pkpi-amber]="upcomingWeekTasks.length > 0">
-              <span class="pkpi-icon">📅</span>
+              <span class="pkpi-icon"><tp-icon name="calendar" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">{{ upcomingWeekTasks.length }}</span>
                 <span class="pkpi-label">Due This Week</span>
               </div>
             </div>
             <div class="pulse-kpi pkpi-amber">
-              <span class="pkpi-icon">⚠️</span>
+              <span class="pkpi-icon"><tp-icon name="alert-triangle" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">{{ topPriorityTasks.length }}</span>
                 <span class="pkpi-label">High/Urgent Priority</span>
@@ -504,7 +508,7 @@
 
           <!-- Critical alerts -->
           <ng-container *ngIf="cachedCriticalAlerts.length > 0">
-            <h3 class="sub-title urgent-title">🚨 Critical — Severely Overdue (&gt;7 days)</h3>
+            <h3 class="sub-title urgent-title">Critical — Severely Overdue (&gt;7 days)</h3>
             <div class="alert-list alert-list--critical">
               <div class="alert-item" *ngFor="let a of cachedCriticalAlerts">
                 <span class="alert-dot alert-dot--critical"></span>
@@ -571,7 +575,7 @@
 
           <!-- Warning alerts -->
           <ng-container *ngIf="cachedWarningAlerts.length > 0">
-            <h3 class="sub-title">⚠️ Warnings</h3>
+            <h3 class="sub-title">Warnings</h3>
             <div class="alert-list alert-list--warn">
               <div class="alert-item" *ngFor="let a of cachedWarningAlerts">
                 <span class="alert-dot alert-dot--warn"></span>
@@ -614,7 +618,7 @@
               *ngFor="let m of filteredPerfData | slice:0:3; let i = index; trackBy: trackById"
               [class.leader-gold]="i === 0" [class.leader-silver]="i === 1" [class.leader-bronze]="i === 2">
               <div class="leader-rank-badge" [class.rank-gold]="i===0" [class.rank-silver]="i===1" [class.rank-bronze]="i===2">
-                {{ getMedalEmoji(i) }}
+                {{ i + 1 }}
               </div>
               <img [src]="m.photo" [alt]="m.name" class="leader-avatar" />
               <p class="leader-name">{{ m.name }}</p>
@@ -697,7 +701,7 @@
               </div>
             </ng-container>
             <p class="empty-state-hint" *ngIf="perfNoOverdue">
-              ✅ No overdue tasks in this period — great work!
+              No overdue tasks in this period — great work!
             </p>
           </div>
 
@@ -758,14 +762,14 @@
             <!-- Month picker -->
             <ng-container *ngIf="boardFilterMode === 'month'">
               <input type="month" class="bfc-input" [(ngModel)]="boardMonth" />
-              <button *ngIf="boardMonth" class="bfc-clear" (click)="boardMonth = ''" title="Clear">✕</button>
+              <button *ngIf="boardMonth" class="bfc-clear" (click)="boardMonth = ''" title="Clear"><tp-icon name="x" [size]="12"></tp-icon></button>
             </ng-container>
             <!-- Date range picker -->
             <ng-container *ngIf="boardFilterMode === 'range'">
               <app-date-picker [(ngModel)]="boardDateFrom"></app-date-picker>
               <span class="bfc-sep">–</span>
               <app-date-picker [(ngModel)]="boardDateTo" [min]="boardDateFrom"></app-date-picker>
-              <button *ngIf="boardDateFrom || boardDateTo" class="bfc-clear" (click)="clearBoardFilter()">✕</button>
+              <button *ngIf="boardDateFrom || boardDateTo" class="bfc-clear" (click)="clearBoardFilter()"><tp-icon name="x" [size]="12"></tp-icon></button>
             </ng-container>
           </div>
           <div class="header-actions">
@@ -799,11 +803,11 @@
               <app-date-picker [(ngModel)]="taskDateFrom"></app-date-picker>
               <label class="filter-label">To</label>
               <app-date-picker [(ngModel)]="taskDateTo" [min]="taskDateFrom"></app-date-picker>
-              <button class="btn-clear-date" *ngIf="taskDateFrom || taskDateTo" (click)="clearDateFilter()" title="Clear date filter">✕</button>
+              <button class="btn-clear-date" *ngIf="taskDateFrom || taskDateTo" (click)="clearDateFilter()" title="Clear date filter"><tp-icon name="x" [size]="12"></tp-icon></button>
             </div>
             <!-- Push buttons to the far right -->
             <div class="filter-bar-actions">
-              <button class="btn-secondary" *ngIf="perms.canExportCsv" (click)="exportTasksCsv()">⬇ Export CSV</button>
+              <button class="btn-secondary" *ngIf="perms.canExportCsv" (click)="exportTasksCsv()"><tp-icon name="download" [size]="13"></tp-icon> Export CSV</button>
               <button class="btn-primary" *ngIf="perms.canCreateTask" (click)="openCreateTask()">+ New Task</button>
             </div>
           </div>
@@ -834,8 +838,8 @@
                     <span class="badge badge-payment" [attr.data-pay]="task.paymentStatus">{{ task.paymentStatus ?? 'N/A' }}</span>
                   </td>
                   <td class="actions-cell">
-                    <button class="btn-icon" *ngIf="perms.canEditTask" title="Edit" (click)="openEditTask(task)">✏️</button>
-                    <button class="btn-icon btn-icon-danger" *ngIf="perms.canDeleteTask" title="Delete" (click)="confirmDelete(task.id)">🗑️</button>
+                    <button class="btn-icon" *ngIf="perms.canEditTask" title="Edit" (click)="openEditTask(task)"><tp-icon name="edit" [size]="14"></tp-icon></button>
+                    <button class="btn-icon btn-icon-danger" *ngIf="perms.canDeleteTask" title="Delete" (click)="confirmDelete(task.id)"><tp-icon name="trash" [size]="14"></tp-icon></button>
                   </td>
                 </tr>
                 <tr *ngIf="filteredTasks.length === 0">
@@ -906,16 +910,16 @@
           <!-- Active filter chips -->
           <div class="board-active-filters" *ngIf="boardHasFilter || boardStageFilter">
             <span class="filter-chip" *ngIf="boardFilterMode === 'month' && boardMonth">
-              📅 {{ boardMonth }}
-              <button class="chip-x" (click)="boardMonth = ''">✕</button>
+              {{ boardMonth }}
+              <button class="chip-x" (click)="boardMonth = ''"><tp-icon name="x" [size]="11"></tp-icon></button>
             </span>
             <span class="filter-chip" *ngIf="boardFilterMode === 'range' && (boardDateFrom || boardDateTo)">
-              📅 {{ boardDateFrom || '…' }} → {{ boardDateTo || '…' }}
-              <button class="chip-x" (click)="clearBoardFilter()">✕</button>
+              {{ boardDateFrom || '…' }} → {{ boardDateTo || '…' }}
+              <button class="chip-x" (click)="clearBoardFilter()"><tp-icon name="x" [size]="11"></tp-icon></button>
             </span>
             <span class="filter-chip" *ngIf="boardStageFilter">
-              🏷️ Stage: {{ boardStageFilter }}
-              <button class="chip-x" (click)="boardStageFilter = null">✕</button>
+              Stage: {{ boardStageFilter }}
+              <button class="chip-x" (click)="boardStageFilter = null"><tp-icon name="x" [size]="11"></tp-icon></button>
             </span>
             <button class="chip-clear-all" *ngIf="(boardHasFilter) && boardStageFilter" (click)="clearBoardFilter(); boardStageFilter = null">Clear all</button>
           </div>
@@ -957,7 +961,7 @@
                   </div>
                 </div>
                 <div class="guide-card" style="--acc:#8b5cf6">
-                  <div class="gc-icon">🔬</div>
+                  <div class="gc-icon"><tp-icon name="search" [size]="22"></tp-icon></div>
                   <div class="gc-accent-bar"></div>
                   <div class="gc-body">
                     <h4 class="gc-title">Refinement</h4>
@@ -972,7 +976,7 @@
               </ng-container>
 
               <div class="guide-card" style="--acc:#3b82f6">
-                <div class="gc-icon">✅</div>
+                <div class="gc-icon"><tp-icon name="check" [size]="22"></tp-icon></div>
                 <div class="gc-accent-bar"></div>
                 <div class="gc-body">
                   <h4 class="gc-title">Ready</h4>
@@ -986,7 +990,7 @@
               </div>
 
               <div class="guide-card" style="--acc:#f59e0b">
-                <div class="gc-icon">⚡</div>
+                <div class="gc-icon"><tp-icon name="activity" [size]="22"></tp-icon></div>
                 <div class="gc-accent-bar"></div>
                 <div class="gc-body">
                   <h4 class="gc-title">In Progress</h4>
@@ -1000,7 +1004,7 @@
               </div>
 
               <div class="guide-card" style="--acc:#ec4899">
-                <div class="gc-icon">🔍</div>
+                <div class="gc-icon"><tp-icon name="eye" [size]="22"></tp-icon></div>
                 <div class="gc-accent-bar"></div>
                 <div class="gc-body">
                   <h4 class="gc-title">Review</h4>
@@ -1014,7 +1018,7 @@
               </div>
 
               <div class="guide-card" style="--acc:#10b981">
-                <div class="gc-icon">🏁</div>
+                <div class="gc-icon"><tp-icon name="check-circle" [size]="22"></tp-icon></div>
                 <div class="gc-accent-bar"></div>
                 <div class="gc-body">
                   <h4 class="gc-title">Complete</h4>
@@ -1112,28 +1116,28 @@
       <section *ngIf="activeSection === 'alerts'" class="section">
 
         <div class="alert-block alert-critical" *ngIf="cachedCriticalAlerts.length > 0">
-          <h3 class="alert-block-title">🚨 Critical — Severely Overdue ({{ cachedCriticalAlerts.length }})</h3>
+          <h3 class="alert-block-title">Critical — Severely Overdue ({{ cachedCriticalAlerts.length }})</h3>
           <ul class="alert-list">
             <li class="alert-item alert-item--danger" *ngFor="let a of cachedCriticalAlerts">{{ a }}</li>
           </ul>
         </div>
 
         <div class="alert-block alert-warnings" *ngIf="cachedWarningAlerts.length > 0">
-          <h3 class="alert-block-title">⚠️ Warnings ({{ cachedWarningAlerts.length }})</h3>
+          <h3 class="alert-block-title">Warnings ({{ cachedWarningAlerts.length }})</h3>
           <ul class="alert-list">
             <li class="alert-item alert-item--warn" *ngFor="let a of cachedWarningAlerts">{{ a }}</li>
           </ul>
         </div>
 
         <div class="alert-clear" *ngIf="cachedCriticalAlerts.length === 0 && cachedWarningAlerts.length === 0">
-          <span class="alert-clear-icon">✅</span>
+          <span class="alert-clear-icon"><tp-icon name="check-circle" [size]="32"></tp-icon></span>
           <p>All clear — no critical or warning alerts at this time.</p>
         </div>
 
         <h3 class="sub-title">Team Health Scorecard</h3>
         <div class="health-kpi-grid">
           <div class="health-kpi-card" *ngFor="let kpi of cachedHealthKPIs">
-            <div class="health-kpi-icon">{{ kpi.icon }}</div>
+            <div class="health-kpi-icon" [style.color]="kpi.color"><tp-icon [name]="kpi.icon" [size]="20"></tp-icon></div>
             <div class="health-kpi-bar-wrap">
               <div class="health-kpi-label">{{ kpi.label }}</div>
               <div class="health-kpi-bar">
@@ -1209,8 +1213,8 @@
                 <img [src]="u.photo" [alt]="u.name" />
               </div>
               <div class="mc-actions" (click)="$event.stopPropagation()">
-                <button *ngIf="perms.canAddMember" class="mc-btn edit" (click)="openEditMember(u)" title="Edit">✏️</button>
-                <button *ngIf="perms.canRemoveMember && u.id !== currentUser?.id" class="mc-btn danger" (click)="confirmDeleteUser(u.id)" title="Remove">🗑️</button>
+                <button *ngIf="perms.canAddMember" class="mc-btn edit" (click)="openEditMember(u)" title="Edit"><tp-icon name="edit" [size]="13"></tp-icon></button>
+                <button *ngIf="perms.canRemoveMember && u.id !== currentUser?.id" class="mc-btn danger" (click)="confirmDeleteUser(u.id)" title="Remove"><tp-icon name="trash" [size]="13"></tp-icon></button>
               </div>
             </div>
             <div class="mc-info">
@@ -1225,8 +1229,8 @@
               </span>
             </div>
             <div class="mc-contact">
-              <a *ngIf="u.phone" [href]="'tel:' + u.phone" class="mc-link" (click)="$event.stopPropagation()">📞 {{ u.phone }}</a>
-              <a *ngIf="u.email" [href]="'mailto:' + u.email" class="mc-link" (click)="$event.stopPropagation()">✉️ {{ u.email }}</a>
+              <a *ngIf="u.phone" [href]="'tel:' + u.phone" class="mc-link" (click)="$event.stopPropagation()">{{ u.phone }}</a>
+              <a *ngIf="u.email" [href]="'mailto:' + u.email" class="mc-link" (click)="$event.stopPropagation()">{{ u.email }}</a>
             </div>
           </div>
           <p class="empty" *ngIf="filteredMembers.length === 0">No members match your search.</p>
@@ -1270,8 +1274,8 @@
                 <span class="hn-me" *ngIf="item.user.id === currentUser?.id">You</span>
               </div>
               <div class="hn-actions" (click)="$event.stopPropagation()">
-                <button *ngIf="perms.canAddMember" class="mc-btn edit" (click)="openEditMember(item.user)" title="Edit">✏️</button>
-                <button *ngIf="perms.canRemoveMember && item.user.id !== currentUser?.id" class="mc-btn danger" (click)="confirmDeleteUser(item.user.id)" title="Remove">🗑️</button>
+                <button *ngIf="perms.canAddMember" class="mc-btn edit" (click)="openEditMember(item.user)" title="Edit"><tp-icon name="edit" [size]="13"></tp-icon></button>
+                <button *ngIf="perms.canRemoveMember && item.user.id !== currentUser?.id" class="mc-btn danger" (click)="confirmDeleteUser(item.user.id)" title="Remove"><tp-icon name="trash" [size]="13"></tp-icon></button>
               </div>
             </div>
           </div>

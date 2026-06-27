@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Task } from '../../../../core/models/task.model';
 import { User } from '../../../../core/models/user.model';
+import { IconComponent } from '../../../../shared/components/icon/icon.component';
 
 export type KanbanStatus =
   | 'new'
@@ -34,7 +35,7 @@ const normalise = (s: string): KanbanStatus =>
 @Component({
   standalone: true,
   selector: 'app-kanban',
-  imports: [CommonModule],
+  imports: [CommonModule, IconComponent],
   templateUrl: './kanban.component.html',
   styleUrls: ['./kanban.component.scss'],
 })
@@ -52,12 +53,12 @@ export class KanbanComponent {
   @Output() addToColumn = new EventEmitter<KanbanStatus>();
 
   private readonly allColumns: Column[] = [
-    { status: 'new',        label: 'New',        accent: '#6b7280', icon: '📥' },
-    { status: 'refinement', label: 'Refinement', accent: '#8b5cf6', icon: '🔬' },
-    { status: 'ready',      label: 'Ready',      accent: '#3b82f6', icon: '✅' },
-    { status: 'in-progress',label: 'In Progress',accent: '#f59e0b', icon: '⚡' },
-    { status: 'review',     label: 'Review',     accent: '#ec4899', icon: '🔍' },
-    { status: 'complete',   label: 'Complete',   accent: '#10b981', icon: '🏁' },
+    { status: 'new',        label: 'New',        accent: '#6b7280', icon: 'plus' },
+    { status: 'refinement', label: 'Refinement', accent: '#8b5cf6', icon: 'search' },
+    { status: 'ready',      label: 'Ready',      accent: '#3b82f6', icon: 'check' },
+    { status: 'in-progress',label: 'In Progress',accent: '#f59e0b', icon: 'activity' },
+    { status: 'review',     label: 'Review',     accent: '#ec4899', icon: 'eye' },
+    { status: 'complete',   label: 'Complete',   accent: '#10b981', icon: 'check-circle' },
   ];
 
   get columns(): Column[] {

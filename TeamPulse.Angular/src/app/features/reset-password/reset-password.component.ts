@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 
 function passwordsMatch(control: AbstractControl): ValidationErrors | null {
   const pass    = control.get('newPassword')?.value;
@@ -23,7 +24,7 @@ function passwordStrength(control: AbstractControl): ValidationErrors | null {
 @Component({
   standalone: true,
   selector: 'app-reset-password',
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, IconComponent],
   templateUrl: './reset-password.component.html',
   styleUrls: ['./reset-password.component.scss'],
 })

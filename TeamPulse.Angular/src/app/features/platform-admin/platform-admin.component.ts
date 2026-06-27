@@ -1,14 +1,15 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiService, TenantRow, CreateTenantRequest } from '../../core/services/api.service';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 
 @Component({
   standalone: true,
   selector: 'app-platform-admin',
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, IconComponent],
   templateUrl: './platform-admin.component.html',
   styleUrls: ['./platform-admin.component.scss'],
 })
@@ -41,6 +42,7 @@ export class PlatformAdminComponent implements OnInit {
     private api: ApiService,
     public auth: AuthService,
     private router: Router,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -50,8 +52,8 @@ export class PlatformAdminComponent implements OnInit {
   loadTenants(): void {
     this.loading = true;
     this.api.getTenants().subscribe({
-      next: t => { this.tenants = t; this.loading = false; },
-      error: () => { this.loading = false; },
+      next: t => { this.tenants = t; this.loading = false; this.cdr.detectChanges(); },
+      error: () => { this.loading = false; this.cdr.detectChanges(); },
     });
   }
 

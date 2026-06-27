@@ -1,4 +1,4 @@
-:host { display: block; height: 100vh; background: #f3f4f6; font-family: 'DM Sans', sans-serif; }
+:host { display: block; height: 100vh; background: #f3f4f6; }
 
 /* Header */
 .pa-header {
@@ -7,9 +7,10 @@
 }
 .pa-header-left { display: flex; align-items: center; gap: 1rem; }
 .pa-logo {
-  width: 36px; height: 36px; background: #C9A84C; color: #1B3A6B;
+  width: 36px; height: 36px; background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
   border-radius: 8px; display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 0.85rem;
+  font-weight: 700; font-size: 0.85rem; color: #fff;
 }
 .pa-title  { margin: 0; font-weight: 600; font-size: 1rem; }
 .pa-subtitle { margin: 0; font-size: 0.72rem; color: #93c5fd; }
@@ -84,11 +85,12 @@ code { background: #f1f5f9; padding: 0.1rem 0.4rem; border-radius: 4px; font-siz
 .pa-modal-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 1.25rem 1.5rem; border-bottom: 1px solid #e5e7eb; flex-shrink: 0;
-  h3 { margin: 0; font-size: 1.05rem; color: #1B3A6B; font-family: 'Syne', sans-serif; }
+  h3 { margin: 0; font-size: 1.05rem; color: #1B3A6B; font-weight: 600; }
 }
 .pa-modal-close {
-  background: none; border: none; font-size: 1.1rem; color: #6b7280; cursor: pointer; line-height: 1;
-  &:hover { color: #111; }
+  background: none; border: none; color: #6b7280; cursor: pointer;
+  display: flex; align-items: center; padding: 0.25rem; border-radius: 4px;
+  &:hover { color: #111; background: #f3f4f6; }
 }
 .pa-modal-body {
   padding: 1.25rem 1.5rem; overflow-y: auto; flex: 1;

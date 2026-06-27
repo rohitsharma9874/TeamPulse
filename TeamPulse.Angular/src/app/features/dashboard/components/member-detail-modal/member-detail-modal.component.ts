@@ -3,13 +3,14 @@ import { CommonModule } from '@angular/common';
 import { User, ROLE_LABELS } from '../../../../core/models/user.model';
 import { MemberDocument } from '../../../../core/models/member-document.model';
 import { ApiService } from '../../../../core/services/api.service';
+import { IconComponent } from '../../../../shared/components/icon/icon.component';
 
 type DetailTab = 'profile' | 'address' | 'emergency' | 'documents';
 
 @Component({
   standalone: true,
   selector: 'app-member-detail-modal',
-  imports: [CommonModule],
+  imports: [CommonModule, IconComponent],
   templateUrl: './member-detail-modal.component.html',
   styleUrls: ['./member-detail-modal.component.scss'],
 })
@@ -26,11 +27,11 @@ export class MemberDetailModalComponent implements OnChanges {
   docs: MemberDocument[] = [];
   loadingDocs = false;
 
-  readonly tabs: { key: DetailTab; label: string; icon: string }[] = [
-    { key: 'profile',   label: 'Profile',    icon: '👤' },
-    { key: 'address',   label: 'Address',    icon: '📍' },
-    { key: 'emergency', label: 'Emergency',  icon: '🆘' },
-    { key: 'documents', label: 'Documents',  icon: '📎' },
+  readonly tabs: { key: DetailTab; label: string }[] = [
+    { key: 'profile',   label: 'Profile'   },
+    { key: 'address',   label: 'Address'   },
+    { key: 'emergency', label: 'Emergency' },
+    { key: 'documents', label: 'Documents' },
   ];
 
   constructor(private api: ApiService) {}

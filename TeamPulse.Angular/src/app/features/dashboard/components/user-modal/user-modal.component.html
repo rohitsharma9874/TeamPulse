@@ -4,7 +4,7 @@
   <div class="modal" role="dialog" aria-modal="true">
     <div class="modal-header">
       <h3>{{ modalTitle }}</h3>
-      <button class="close-btn" (click)="cancel.emit()">✕</button>
+      <button class="close-btn" (click)="cancel.emit()"><tp-icon name="x" [size]="16"></tp-icon></button>
     </div>
 
     <!-- Tab bar -->
@@ -12,7 +12,7 @@
       <button *ngFor="let t of tabs" type="button"
         class="tab-btn" [class.active]="activeTab === t.key"
         (click)="activeTab = t.key">
-        <span class="tab-icon">{{ t.icon }}</span>
+        <span class="tab-icon"><tp-icon [name]="t.icon" [size]="14"></tp-icon></span>
         <span class="tab-label">{{ t.label }}</span>
       </button>
     </div>
@@ -189,15 +189,15 @@
           <div class="doc-list" *ngIf="existingDocs.length > 0">
             <p class="sub-label">Uploaded ({{ existingDocs.length }})</p>
             <div class="doc-item" *ngFor="let doc of existingDocs">
-              <span class="doc-icon">{{ fileIcon(doc.contentType) }}</span>
+              <span class="doc-icon"><tp-icon name="file-text" [size]="18"></tp-icon></span>
               <div class="doc-meta">
                 <p class="doc-name">{{ doc.originalName }}</p>
                 <p class="doc-sub">{{ doc.documentType }} · {{ formatBytes(doc.fileSize) }}</p>
               </div>
               <div class="doc-actions">
-                <button type="button" class="doc-btn view"     (click)="viewDoc(doc)"     title="View">👁</button>
-                <button type="button" class="doc-btn download" (click)="downloadDoc(doc)" title="Download">⬇</button>
-                <button type="button" class="doc-btn delete"   (click)="deleteExistingDoc(doc)" title="Delete">✕</button>
+                <button type="button" class="doc-btn view"     (click)="viewDoc(doc)"     title="View"><tp-icon name="eye" [size]="13"></tp-icon></button>
+                <button type="button" class="doc-btn download" (click)="downloadDoc(doc)" title="Download"><tp-icon name="download" [size]="13"></tp-icon></button>
+                <button type="button" class="doc-btn delete"   (click)="deleteExistingDoc(doc)" title="Delete"><tp-icon name="x" [size]="13"></tp-icon></button>
               </div>
             </div>
           </div>
@@ -207,12 +207,12 @@
         <div class="doc-list" *ngIf="pendingFiles.length > 0">
           <p class="sub-label">Queued for upload ({{ pendingFiles.length }})</p>
           <div class="doc-item doc-item--pending" *ngFor="let p of pendingFiles">
-            <span class="doc-icon">{{ fileIcon(p.file.type) }}</span>
+            <span class="doc-icon"><tp-icon name="file-text" [size]="18"></tp-icon></span>
             <div class="doc-meta">
               <p class="doc-name">{{ p.file.name }}</p>
               <p class="doc-sub">{{ p.docType }} · {{ formatBytes(p.file.size) }}</p>
             </div>
-            <button type="button" class="doc-btn delete" (click)="removePending(p)">✕</button>
+            <button type="button" class="doc-btn delete" (click)="removePending(p)"><tp-icon name="x" [size]="13"></tp-icon></button>
           </div>
         </div>
 
@@ -227,7 +227,7 @@
         <div class="drop-zone" [class.drop-zone--over]="isDragOver"
           (dragover)="onDragOver($event)" (dragleave)="onDragLeave()" (drop)="onDrop($event)"
           (click)="fileInput.click()">
-          <span class="drop-icon">📎</span>
+          <span class="drop-icon"><tp-icon name="upload-cloud" [size]="28"></tp-icon></span>
           <p class="drop-label">Drop files or <span class="drop-link">browse</span></p>
           <p class="drop-hint">Any file type · max 20 MB</p>
           <input #fileInput type="file" multiple hidden (change)="onFileChange($event)" />

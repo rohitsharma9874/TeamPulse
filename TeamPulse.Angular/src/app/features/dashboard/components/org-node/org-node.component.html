@@ -14,8 +14,8 @@
       <span class="vcard-tasks" *ngIf="taskCount > 0">{{ taskCount }} tasks</span>
       <span class="vcard-me" *ngIf="node.user.id === currentUserId">You</span>
       <div class="vcard-actions" *ngIf="perms.canAddMember || perms.canRemoveMember" (click)="$event.stopPropagation()">
-        <button *ngIf="perms.canAddMember" class="vcard-btn" title="Edit" (click)="onEditClick(node.user)">✏️</button>
-        <button *ngIf="perms.canRemoveMember && node.user.id !== currentUserId" class="vcard-btn danger" title="Remove" (click)="onDeleteClick(node.user.id)">🗑️</button>
+        <button *ngIf="perms.canAddMember" class="vcard-btn" title="Edit" (click)="onEditClick(node.user)"><tp-icon name="edit" [size]="13"></tp-icon></button>
+        <button *ngIf="perms.canRemoveMember && node.user.id !== currentUserId" class="vcard-btn danger" title="Remove" (click)="onDeleteClick(node.user.id)"><tp-icon name="trash" [size]="13"></tp-icon></button>
       </div>
     </div>
   </div>

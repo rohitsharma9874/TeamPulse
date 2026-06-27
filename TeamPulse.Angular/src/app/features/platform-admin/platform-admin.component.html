@@ -72,7 +72,7 @@
   <div class="pa-modal" *ngIf="showForm" role="dialog" aria-modal="true">
     <div class="pa-modal-header">
       <h3>{{ editingTenant ? 'Edit Tenant' : 'Add Tenant' }}</h3>
-      <button class="pa-modal-close" (click)="closeForm()">✕</button>
+      <button class="pa-modal-close" (click)="closeForm()"><tp-icon name="x" [size]="16"></tp-icon></button>
     </div>
 
     <p class="pa-error" *ngIf="error">{{ error }}</p>

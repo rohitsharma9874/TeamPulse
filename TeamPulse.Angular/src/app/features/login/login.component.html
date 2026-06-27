@@ -15,7 +15,9 @@
     <form [formGroup]="form" (ngSubmit)="submit()">
       <div class="field">
         <label>Company Code</label>
-        <input formControlName="tenantId" type="text" placeholder="e.g. KPA001" autocomplete="organization" />
+        <input formControlName="tenantId" type="text" placeholder="e.g. KPA001" autocomplete="organization"
+          style="text-transform:uppercase"
+          (input)="form.get('tenantId')!.setValue($any($event.target).value.toUpperCase(), {emitEvent:false})" />
       </div>
       <div class="field">
         <label>Username</label>
@@ -23,7 +25,13 @@
       </div>
       <div class="field">
         <label>Password</label>
-        <input formControlName="password" type="password" placeholder="Enter password" autocomplete="current-password" />
+        <div class="pw-wrap">
+          <input formControlName="password" [type]="showPassword ? 'text' : 'password'"
+            placeholder="Enter password" autocomplete="current-password" />
+          <button type="button" class="pw-toggle" (click)="showPassword = !showPassword">
+            <tp-icon [name]="showPassword ? 'eye-off' : 'eye'" [size]="16"></tp-icon>
+          </button>
+        </div>
       </div>
       <p class="error" *ngIf="error">{{ error }}</p>
       <div class="form-footer">

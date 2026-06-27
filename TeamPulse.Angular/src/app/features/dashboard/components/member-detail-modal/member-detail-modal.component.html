@@ -21,8 +21,8 @@
         </div>
       </div>
       <div class="header-actions">
-        <button *ngIf="canEdit" class="btn-edit" (click)="editUser.emit(member)">✏️ Edit</button>
-        <button class="btn-close" (click)="close.emit()">✕</button>
+        <button *ngIf="canEdit" class="btn-edit" (click)="editUser.emit(member)"><tp-icon name="edit" [size]="13"></tp-icon> Edit</button>
+        <button class="btn-close" (click)="close.emit()"><tp-icon name="x" [size]="14"></tp-icon></button>
       </div>
     </div>
 
@@ -31,7 +31,7 @@
       <button *ngFor="let t of tabs" type="button"
         class="tab-btn" [class.active]="activeTab === t.key"
         (click)="activeTab = t.key">
-        {{ t.icon }} {{ t.label }}
+        {{ t.label }}
         <span *ngIf="t.key === 'documents' && docs.length > 0" class="tab-badge">{{ docs.length }}</span>
       </button>
     </div>
@@ -111,7 +111,7 @@
         </div>
 
         <div class="map-placeholder" *ngIf="member.city || member.addressLine1">
-          <span class="map-icon">📍</span>
+          <span class="map-icon"><tp-icon name="map-pin" [size]="18"></tp-icon></span>
           <span>{{ formatAddress(member) }}</span>
         </div>
       </div>
@@ -120,11 +120,11 @@
       <div class="tab-panel" *ngIf="activeTab === 'emergency'">
         <div *ngIf="member.emergencyContact || member.emergencyPhone; else noEmergency">
           <div class="emergency-card">
-            <div class="emergency-icon">🆘</div>
+            <div class="emergency-icon"><tp-icon name="shield" [size]="28"></tp-icon></div>
             <div class="emergency-info">
               <p class="em-name">{{ member.emergencyContact || '—' }}</p>
               <a *ngIf="member.emergencyPhone" [href]="'tel:' + member.emergencyPhone" class="em-phone link">
-                📞 {{ member.emergencyPhone }}
+                {{ member.emergencyPhone }}
               </a>
               <span *ngIf="!member.emergencyPhone" class="muted">No phone provided</span>
             </div>
@@ -132,7 +132,7 @@
         </div>
         <ng-template #noEmergency>
           <div class="empty-state">
-            <span class="empty-icon">🆘</span>
+            <span class="empty-icon"><tp-icon name="shield" [size]="32"></tp-icon></span>
             <p>No emergency contact on file.</p>
           </div>
         </ng-template>
@@ -143,13 +143,13 @@
         <p *ngIf="loadingDocs" class="muted">Loading documents…</p>
 
         <div *ngIf="!loadingDocs && docs.length === 0" class="empty-state">
-          <span class="empty-icon">📎</span>
+          <span class="empty-icon"><tp-icon name="paperclip" [size]="32"></tp-icon></span>
           <p>No documents uploaded yet.</p>
         </div>
 
         <div class="doc-list" *ngIf="docs.length > 0">
           <div class="doc-item" *ngFor="let doc of docs">
-            <span class="doc-icon">{{ fileIcon(doc.contentType) }}</span>
+            <span class="doc-icon"><tp-icon name="file-text" [size]="20"></tp-icon></span>
             <div class="doc-meta">
               <p class="doc-name">{{ doc.originalName }}</p>
               <div class="doc-sub-row">
@@ -160,8 +160,8 @@
               </div>
               <p class="doc-date">Uploaded {{ formatDate(doc.uploadedAt) }}</p>
             </div>
-            <button class="doc-btn view"     (click)="viewDoc(doc)"     title="View">👁</button>
-            <button class="doc-btn download" (click)="downloadDoc(doc)" title="Download">⬇</button>
+            <button class="doc-btn view"     (click)="viewDoc(doc)"     title="View"><tp-icon name="eye" [size]="14"></tp-icon></button>
+            <button class="doc-btn download" (click)="downloadDoc(doc)" title="Download"><tp-icon name="download" [size]="14"></tp-icon></button>
           </div>
         </div>
       </div>

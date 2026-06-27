@@ -48,10 +48,10 @@
             </div>
             <div class="card-actions">
               <span class="deadline" *ngIf="task.deadline" [class.red]="isOverdue(task)">
-                📅 {{ task.deadline | date:'dd MMM' }}
+                <tp-icon name="calendar" [size]="11"></tp-icon> {{ task.deadline | date:'dd MMM' }}
               </span>
-              <button class="icon-btn" title="Edit" (click)="editTask.emit(task)">✏️</button>
-              <button class="icon-btn danger" title="Delete" (click)="deleteTask.emit(task.id)">🗑️</button>
+              <button class="icon-btn" title="Edit" (click)="editTask.emit(task)"><tp-icon name="edit" [size]="13"></tp-icon></button>
+              <button class="icon-btn danger" title="Delete" (click)="deleteTask.emit(task.id)"><tp-icon name="trash" [size]="13"></tp-icon></button>
             </div>
           </div>
 

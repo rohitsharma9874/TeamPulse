@@ -1,6 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { User, ROLE_LABELS } from '../../../../core/models/user.model';
+import { IconComponent } from '../../../../shared/components/icon/icon.component';
 
 export interface OrgTreeNode {
   user: User;
@@ -10,7 +11,7 @@ export interface OrgTreeNode {
 @Component({
   standalone: true,
   selector: 'app-org-node',
-  imports: [CommonModule, OrgNodeComponent],
+  imports: [CommonModule, OrgNodeComponent, IconComponent],
   templateUrl: './org-node.component.html',
   styleUrls: ['./org-node.component.scss'],
 })

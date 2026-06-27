@@ -114,11 +114,16 @@ static async Task SeedAsync(TeamPulseDbContext db, IConfiguration config)
     }
 
     // Seed platform-admin user — credentials from PlatformAdmin__Username / PlatformAdmin__Password
+    // Upsert so that username/password changes in config take effect on restart.
     var platformAdminUsername = config["PlatformAdmin:Username"];
     var platformAdminPassword = config["PlatformAdmin:Password"];
     if (!string.IsNullOrEmpty(platformAdminUsername) && !string.IsNullOrEmpty(platformAdminPassword))
     {
-        if (!db.Users.Any(u => u.Username == platformAdminUsername && u.CompanyId == "PLATFORM"))
+        var existingAdmin = await db.Users
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.CompanyId == "PLATFORM" && u.Role == "platform-admin");
+
+        if (existingAdmin is null)
         {
             db.Users.Add(new User
             {
@@ -132,8 +137,14 @@ static async Task SeedAsync(TeamPulseDbContext db, IConfiguration config)
                 CreatedAt    = DateTime.UtcNow,
                 CreatedBy    = "system",
             });
-            await db.SaveChangesAsync();
         }
+        else
+        {
+            existingAdmin.Username     = platformAdminUsername;
+            existingAdmin.PasswordHash = BCrypt.Net.BCrypt.HashPassword(platformAdminPassword, 12);
+            existingAdmin.IsDeleted    = false;
+        }
+        await db.SaveChangesAsync();
     }
 
     // Seed the KPA001 tenant if it doesn't exist yet
@@ -173,7 +184,7 @@ static async Task SeedAsync(TeamPulseDbContext db, IConfiguration config)
         }
     }
 
-    if (db.Users.Any(u => u.Role != "owner")) return;
+    if (db.Users.Any(u => u.CompanyId == companyId && u.Role != "owner")) return;
 
     var admin = new User
     {

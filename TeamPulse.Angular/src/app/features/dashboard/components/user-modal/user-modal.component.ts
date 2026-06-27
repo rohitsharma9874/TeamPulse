@@ -9,6 +9,7 @@ import {
 import { MemberDocument, DOCUMENT_TYPES } from '../../../../core/models/member-document.model';
 import { ApiService } from '../../../../core/services/api.service';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
+import { IconComponent } from '../../../../shared/components/icon/icon.component';
 
 export interface UserSavePayload {
   request: CreateUserRequest | UpdateProfileRequest;
@@ -21,7 +22,7 @@ type ModalTab = 'account' | 'work' | 'address' | 'emergency' | 'documents';
 @Component({
   standalone: true,
   selector: 'app-user-modal',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePickerComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePickerComponent, IconComponent],
   templateUrl: './user-modal.component.html',
   styleUrls: ['./user-modal.component.scss'],
 })
@@ -47,11 +48,11 @@ export class UserModalComponent implements OnChanges {
   pendingDocType = 'Other';
 
   readonly tabs: { key: ModalTab; label: string; icon: string }[] = [
-    { key: 'account',   label: 'Account',   icon: '👤' },
-    { key: 'work',      label: 'Work',       icon: '💼' },
-    { key: 'address',   label: 'Address',    icon: '📍' },
-    { key: 'emergency', label: 'Emergency',  icon: '🆘' },
-    { key: 'documents', label: 'Documents',  icon: '📎' },
+    { key: 'account',   label: 'Account',   icon: 'user'       },
+    { key: 'work',      label: 'Work',       icon: 'briefcase'  },
+    { key: 'address',   label: 'Address',    icon: 'map-pin'    },
+    { key: 'emergency', label: 'Emergency',  icon: 'shield'     },
+    { key: 'documents', label: 'Documents',  icon: 'paperclip'  },
   ];
 
   readonly documentTypes  = DOCUMENT_TYPES;

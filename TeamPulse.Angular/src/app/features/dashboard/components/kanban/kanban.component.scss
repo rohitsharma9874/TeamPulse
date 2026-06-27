@@ -220,6 +220,9 @@
   font-size: 0.7rem;
   color: var(--text-muted, #6b7280);
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
 
   &.red { color: #dc2626; font-weight: 600; }
 }

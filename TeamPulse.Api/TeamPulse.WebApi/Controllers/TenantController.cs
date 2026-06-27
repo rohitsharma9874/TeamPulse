@@ -43,19 +43,25 @@ namespace TeamPulse.Api.Controllers
 
             var tenants = await _db.Tenants
                 .OrderBy(t => t.Name)
-                .Select(t => new
-                {
-                    t.Id,
-                    t.Name,
-                    t.Tagline,
-                    t.LogoUrl,
-                    t.IsActive,
-                    t.CreatedAt,
-                    UserCount = _db.Users.Count(u => u.CompanyId == t.Id)
-                })
                 .ToListAsync();
 
-            return Ok(tenants);
+            var userCounts = await _db.Users
+                .IgnoreQueryFilters()
+                .Where(u => !u.IsDeleted)
+                .GroupBy(u => u.CompanyId)
+                .Select(g => new { CompanyId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.CompanyId, x => x.Count);
+
+            return Ok(tenants.Select(t => new
+            {
+                t.Id,
+                t.Name,
+                t.Tagline,
+                t.LogoUrl,
+                t.IsActive,
+                t.CreatedAt,
+                UserCount = userCounts.GetValueOrDefault(t.Id, 0),
+            }));
         }
 
         [HttpPost]

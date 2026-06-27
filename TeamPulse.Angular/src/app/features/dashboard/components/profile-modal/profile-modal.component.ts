@@ -3,13 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UpdateProfileRequest, User } from '../../../../core/models/user.model';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
+import { IconComponent } from '../../../../shared/components/icon/icon.component';
 
 type ProfileTab = 'personal' | 'address' | 'emergency' | 'security';
 
 @Component({
   standalone: true,
   selector: 'app-profile-modal',
-  imports: [CommonModule, ReactiveFormsModule, DatePickerComponent],
+  imports: [CommonModule, ReactiveFormsModule, DatePickerComponent, IconComponent],
   templateUrl: './profile-modal.component.html',
   styleUrls: ['./profile-modal.component.scss'],
 })
@@ -26,10 +27,10 @@ export class ProfileModalComponent implements OnChanges {
   showPassword = false;
 
   readonly tabs: { key: ProfileTab; label: string; icon: string }[] = [
-    { key: 'personal',  label: 'Personal',  icon: '👤' },
-    { key: 'address',   label: 'Address',   icon: '📍' },
-    { key: 'emergency', label: 'Emergency', icon: '🆘' },
-    { key: 'security',  label: 'Security',  icon: '🔒' },
+    { key: 'personal',  label: 'Personal',  icon: 'user'     },
+    { key: 'address',   label: 'Address',   icon: 'map-pin'  },
+    { key: 'emergency', label: 'Emergency', icon: 'shield'   },
+    { key: 'security',  label: 'Security',  icon: 'lock'     },
   ];
 
   constructor(private fb: FormBuilder) {

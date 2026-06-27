@@ -7,6 +7,7 @@ import { TaskDocument } from '../../../../core/models/task-document.model';
 import { PaymentTransaction, PAYMENT_METHODS } from '../../../../core/models/payment-transaction.model';
 import { User, ROLE_HIERARCHY } from '../../../../core/models/user.model';
 import { ApiService } from '../../../../core/services/api.service';
+import { IconComponent } from '../../../../shared/components/icon/icon.component';
 
 export interface TaskSavePayload {
   request: TaskRequest;
@@ -16,7 +17,7 @@ export interface TaskSavePayload {
 @Component({
   standalone: true,
   selector: 'app-task-modal',
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, DatePickerComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, DatePickerComponent, IconComponent],
   templateUrl: './task-modal.component.html',
   styleUrls: ['./task-modal.component.scss'],
 })

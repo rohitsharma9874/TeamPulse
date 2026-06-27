@@ -12,7 +12,7 @@
           <p class="profile-role-hint">{{ user?.name }} · Personal details only</p>
         </div>
       </div>
-      <button class="close-btn" (click)="cancel.emit()">✕</button>
+      <button class="close-btn" (click)="cancel.emit()"><tp-icon name="x" [size]="16"></tp-icon></button>
     </div>
 
     <!-- Tab bar -->
@@ -20,7 +20,7 @@
       <button *ngFor="let t of tabs" type="button"
         class="tab-btn" [class.active]="activeTab === t.key"
         (click)="activeTab = t.key">
-        <span class="tab-icon">{{ t.icon }}</span>
+        <span class="tab-icon"><tp-icon [name]="t.icon" [size]="14"></tp-icon></span>
         <span class="tab-label">{{ t.label }}</span>
       </button>
     </div>
@@ -68,7 +68,7 @@
         </div>
 
         <div class="info-note">
-          <span class="info-icon">ℹ️</span>
+          <span class="info-icon"><tp-icon name="info" [size]="15"></tp-icon></span>
           Role, department, designation and reporting line are managed by your administrator.
         </div>
       </div>
@@ -132,7 +132,7 @@
                 placeholder="Min 6 characters"
                 [class.err]="isInvalid('newPassword')" />
               <button type="button" class="pw-toggle" (click)="showPassword = !showPassword">
-                {{ showPassword ? '🙈' : '👁️' }}
+                <tp-icon [name]="showPassword ? 'eye-off' : 'eye'" [size]="15"></tp-icon>
               </button>
             </div>
             <span class="err-msg" *ngIf="isInvalid('newPassword')">Minimum 6 characters</span>

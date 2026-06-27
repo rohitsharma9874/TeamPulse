@@ -89,14 +89,14 @@
         <p class="attach-subtitle" *ngIf="existingDocs.length > 0">Uploaded ({{ existingDocs.length }})</p>
         <p class="attach-loading" *ngIf="loadingDocs">Loading attachments…</p>
         <div class="attach-item" *ngFor="let doc of existingDocs">
-          <span class="attach-icon">{{ fileIcon(doc.contentType) }}</span>
+          <span class="attach-icon"><tp-icon name="file-text" [size]="16"></tp-icon></span>
           <div class="attach-meta">
             <p class="attach-name">{{ doc.originalName }}</p>
             <p class="attach-size">{{ formatBytes(doc.fileSize) }}</p>
           </div>
           <div class="attach-actions">
-            <button type="button" class="attach-btn download" title="Download" (click)="downloadDoc(doc)">⬇</button>
-            <button type="button" class="attach-btn delete"   title="Remove"   (click)="deleteExisting(doc)">✕</button>
+            <button type="button" class="attach-btn download" title="Download" (click)="downloadDoc(doc)"><tp-icon name="download" [size]="13"></tp-icon></button>
+            <button type="button" class="attach-btn delete"   title="Remove"   (click)="deleteExisting(doc)"><tp-icon name="x" [size]="13"></tp-icon></button>
           </div>
         </div>
       </div>
@@ -105,12 +105,12 @@
       <div class="attach-list" *ngIf="pendingFiles.length > 0">
         <p class="attach-subtitle">Pending upload ({{ pendingFiles.length }})</p>
         <div class="attach-item attach-item--pending" *ngFor="let f of pendingFiles">
-          <span class="attach-icon">{{ fileIcon(f.type) }}</span>
+          <span class="attach-icon"><tp-icon name="file-text" [size]="16"></tp-icon></span>
           <div class="attach-meta">
             <p class="attach-name">{{ f.name }}</p>
             <p class="attach-size">{{ formatBytes(f.size) }}</p>
           </div>
-          <button type="button" class="attach-btn delete" title="Remove" (click)="removePending(f)">✕</button>
+          <button type="button" class="attach-btn delete" title="Remove" (click)="removePending(f)"><tp-icon name="x" [size]="13"></tp-icon></button>
         </div>
       </div>
 
@@ -121,7 +121,7 @@
         (dragleave)="onDragLeave()"
         (drop)="onDrop($event)"
         (click)="fileInput.click()">
-        <span class="drop-icon">📎</span>
+        <span class="drop-icon"><tp-icon name="upload-cloud" [size]="28"></tp-icon></span>
         <p class="drop-label">Drop files here or <span class="drop-link">browse</span></p>
         <p class="drop-hint">Any file type · max 20 MB each</p>
         <input #fileInput type="file" multiple hidden (change)="onFileInputChange($event)" />
@@ -136,7 +136,7 @@
           Total paid: ₹{{ totalPaid() | number:'1.0-0' }}
         </span>
         <button type="button" class="btn-add-pay" (click)="showAddPayment = !showAddPayment">
-          {{ showAddPayment ? '✕ Cancel' : '+ Log Payment' }}
+          {{ showAddPayment ? 'Cancel' : '+ Log Payment' }}
         </button>
       </div>
 
@@ -173,14 +173,14 @@
 
       <div class="pay-list" *ngIf="paymentHistory.length > 0">
         <div class="pay-item" *ngFor="let t of paymentHistory">
-          <div class="pay-item-icon">💳</div>
+          <div class="pay-item-icon"><tp-icon name="credit-card" [size]="16"></tp-icon></div>
           <div class="pay-item-meta">
             <span class="pay-amount">₹{{ t.amount | number:'1.0-0' }}</span>
             <span class="pay-method">{{ t.paymentMethod }}</span>
             <span class="pay-date">{{ formatDate(t.paidOn) }}</span>
             <span class="pay-notes" *ngIf="t.notes">{{ t.notes }}</span>
           </div>
-          <button type="button" class="attach-btn delete" title="Remove" (click)="deletePayment(t)">✕</button>
+          <button type="button" class="attach-btn delete" title="Remove" (click)="deletePayment(t)"><tp-icon name="x" [size]="13"></tp-icon></button>
         </div>
       </div>
     </div>
