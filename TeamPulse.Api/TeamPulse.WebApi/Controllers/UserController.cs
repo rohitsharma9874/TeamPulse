@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using TeamPulse.Application.DTOs.Auth;
 using TeamPulse.Application.DTOs.User;
 using TeamPulse.Application.Interfaces;
@@ -15,12 +16,21 @@ namespace TeamPulse.Api.Controllers
         private readonly IUserRepository _userRepo;
         private readonly IAuthService _authService;
         private readonly IPasswordHasher _hasher;
+        private readonly IEmailService _emailService;
+        private readonly IConfiguration _config;
 
-        public UserController(IUserRepository userRepo, IAuthService authService, IPasswordHasher hasher)
+        public UserController(
+            IUserRepository userRepo,
+            IAuthService authService,
+            IPasswordHasher hasher,
+            IEmailService emailService,
+            IConfiguration config)
         {
-            _userRepo = userRepo;
-            _authService = authService;
-            _hasher = hasher;
+            _userRepo     = userRepo;
+            _authService  = authService;
+            _hasher       = hasher;
+            _emailService = emailService;
+            _config       = config;
         }
 
         private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -42,7 +52,7 @@ namespace TeamPulse.Api.Controllers
                 return Forbid();
 
             var registerRequest = new RegisterUserRequest(
-                request.Username, request.Password, request.Name,
+                request.Username, GenerateRandomPassword(), request.Name,
                 request.Email ?? $"{request.Username}@teampulse.local",
                 request.Role, request.Department ?? string.Empty,
                 request.Phone ?? string.Empty, request.PhotoUrl);
@@ -65,6 +75,19 @@ namespace TeamPulse.Api.Controllers
                 user.EmergencyPhone  = request.EmergencyPhone;
                 await _userRepo.UpdateAsync(user);
                 await _userRepo.SaveChangesAsync();
+
+                // Send welcome email — non-blocking
+                if (!string.IsNullOrWhiteSpace(user.Email) && !user.Email.EndsWith("@teampulse.local"))
+                {
+                    try
+                    {
+                        var appUrl = _config["App:Url"] ?? "http://localhost:4200";
+                        var link   = await _authService.CreateSetPasswordLinkAsync(user.Id, appUrl);
+                        await _emailService.SendWelcomeEmailAsync(user.Email, user.Name, CurrentUserCompanyId, user.Username, link);
+                    }
+                    catch { /* email failure is non-fatal */ }
+                }
+
                 return CreatedAtAction(nameof(GetUsers), null, ToDto(user));
             }
             catch (InvalidOperationException ex)
@@ -124,6 +147,16 @@ namespace TeamPulse.Api.Controllers
             await _userRepo.UpdateAsync(user);
             await _userRepo.SaveChangesAsync();
             return Ok(ToDto(user));
+        }
+
+        private static string GenerateRandomPassword()
+        {
+            const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$";
+            var bytes = new byte[16];
+            System.Security.Cryptography.RandomNumberGenerator.Fill(bytes);
+            var sb = new System.Text.StringBuilder();
+            foreach (var b in bytes) sb.Append(chars[b % chars.Length]);
+            return sb.ToString();
         }
 
         private static UserDto ToDto(Domain.Entities.User u) => new(

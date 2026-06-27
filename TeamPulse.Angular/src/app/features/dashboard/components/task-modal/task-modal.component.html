@@ -50,7 +50,7 @@
       </div>
       <div class="field">
         <label>Deadline</label>
-        <input formControlName="deadline" type="date" [min]="todayStr" />
+        <app-date-picker formControlName="deadline" [min]="todayStr"></app-date-picker>
       </div>
     </div>
 
@@ -155,7 +155,7 @@
           </div>
           <div class="pay-field">
             <label>Date</label>
-            <input type="date" [(ngModel)]="newPaymentDate" [max]="todayStr" />
+            <app-date-picker [(ngModel)]="newPaymentDate" [max]="todayStr"></app-date-picker>
           </div>
         </div>
         <div class="pay-field full">

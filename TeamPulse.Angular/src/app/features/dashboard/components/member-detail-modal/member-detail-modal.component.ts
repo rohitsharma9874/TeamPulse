@@ -77,6 +77,20 @@ export class MemberDetailModalComponent implements OnChanges {
     });
   }
 
+  viewDoc(doc: MemberDocument): void {
+    const viewable = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    this.api.downloadMemberDocument(doc.id).subscribe(blob => {
+      const url = URL.createObjectURL(new Blob([blob], { type: doc.contentType }));
+      if (viewable.includes(doc.contentType)) {
+        window.open(url, '_blank');
+      } else {
+        const link = document.createElement('a');
+        link.href = url; link.download = doc.originalName; link.click();
+        URL.revokeObjectURL(url);
+      }
+    });
+  }
+
   formatBytes(bytes: number): string {
     if (bytes < 1024)      return `${bytes} B`;
     if (bytes < 1_048_576) return `${(bytes / 1024).toFixed(1)} KB`;

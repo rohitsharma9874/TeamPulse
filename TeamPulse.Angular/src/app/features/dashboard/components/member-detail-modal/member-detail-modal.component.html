@@ -160,6 +160,7 @@
               </div>
               <p class="doc-date">Uploaded {{ formatDate(doc.uploadedAt) }}</p>
             </div>
+            <button class="doc-btn view"     (click)="viewDoc(doc)"     title="View">👁</button>
             <button class="doc-btn download" (click)="downloadDoc(doc)" title="Download">⬇</button>
           </div>
         </div>

@@ -333,6 +333,7 @@
   justify-content: center;
   flex-shrink: 0;
 
+  &.view     { background: #f0fdf4; color: #16a34a; &:hover { background: #dcfce7; } }
   &.download { background: #eff6ff; color: #1d4ed8; &:hover { background: #dbeafe; } }
 }
 

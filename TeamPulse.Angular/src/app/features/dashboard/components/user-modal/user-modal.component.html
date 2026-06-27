@@ -34,31 +34,29 @@
           </div>
         </div>
 
-        <div class="form-row">
+        <div class="form-row single">
           <div class="field">
             <label>Username <span class="req" *ngIf="!isEdit">*</span></label>
             <input formControlName="username" type="text" placeholder="rahul.sharma" [class.err]="isInvalid('username')" />
             <span class="err-msg" *ngIf="isInvalid('username')">Min 3 characters</span>
           </div>
+        </div>
+
+        <div class="form-row single" *ngIf="isEdit">
           <div class="field">
-            <label>{{ isEdit ? 'New Password' : 'Password' }} <span class="req" *ngIf="!isEdit">*</span></label>
-            <div class="pw-wrap">
-              <input formControlName="{{ isEdit ? 'newPassword' : 'password' }}"
-                [type]="showPassword ? 'text' : 'password'"
-                [placeholder]="isEdit ? 'Leave blank to keep current' : 'Min 6 characters'"
-                [class.err]="!isEdit && isInvalid('password')" />
-              <button type="button" class="pw-toggle" (click)="showPassword = !showPassword">{{ showPassword ? '🙈' : '👁️' }}</button>
-            </div>
-            <span class="err-msg" *ngIf="!isEdit && isInvalid('password')">Min 6 characters</span>
+            <label>Change Password<span class="field-hint">Leave blank to keep current</span></label>
+            <input formControlName="newPassword" type="password" placeholder="New password" />
           </div>
         </div>
+
+        <p class="section-hint" *ngIf="!isEdit">A welcome email with a link to set their password will be sent to the member.</p>
       </div>
 
       <!-- ── Work tab ────────────────────────────────────── -->
       <div class="tab-panel" *ngIf="activeTab === 'work'">
         <div class="form-row">
           <div class="field">
-            <label>Role <span class="req">*</span></label>
+            <label>Role <span class="req">*</span><span class="field-hint">Position in organisation</span></label>
             <select formControlName="role" [class.err]="isInvalid('role')">
               <optgroup *ngFor="let group of assignableRoleGroups" [label]="group.group">
                 <option *ngFor="let r of group.roles" [value]="r.value">{{ r.label }}</option>
@@ -66,9 +64,9 @@
             </select>
           </div>
           <div class="field">
-            <label>Designation <span class="req">*</span></label>
+            <label>Designation <span class="req">*</span><span class="field-hint">Job grade / title</span></label>
             <select formControlName="designation" [class.err]="isInvalid('designation')">
-              <option value="">— Select designation —</option>
+              <option value="">— Select —</option>
               <option *ngFor="let d of designations" [value]="d">{{ d }}</option>
             </select>
             <span class="err-msg" *ngIf="isInvalid('designation')">Required</span>
@@ -79,14 +77,14 @@
           <div class="field">
             <label>Department <span class="req">*</span></label>
             <select formControlName="department" [class.err]="isInvalid('department')">
-              <option value="">— Select department —</option>
+              <option value="">— Select —</option>
               <option *ngFor="let d of departments" [value]="d">{{ d }}</option>
             </select>
             <span class="err-msg" *ngIf="isInvalid('department')">Required</span>
           </div>
           <div class="field">
             <label>Join Date <span class="req">*</span></label>
-            <input formControlName="joinDate" type="date" [class.err]="isInvalid('joinDate')" />
+            <app-date-picker formControlName="joinDate" [hasError]="isInvalid('joinDate')"></app-date-picker>
             <span class="err-msg" *ngIf="isInvalid('joinDate')">Required</span>
           </div>
         </div>
@@ -127,7 +125,7 @@
         <div class="form-row">
           <div class="field">
             <label>Date of Birth</label>
-            <input formControlName="dateOfBirth" type="date" />
+            <app-date-picker formControlName="dateOfBirth"></app-date-picker>
           </div>
         </div>
 
@@ -163,21 +161,27 @@
 
       <!-- ── Emergency tab ───────────────────────────────── -->
       <div class="tab-panel" *ngIf="activeTab === 'emergency'">
-        <p class="section-hint">Emergency contact details for this member.</p>
+        <p class="section-hint">Emergency contact details are mandatory for all team members.</p>
         <div class="form-row">
           <div class="field">
-            <label>Contact Name</label>
-            <input formControlName="emergencyContact" type="text" placeholder="Parent / Spouse / Friend" />
+            <label>Contact Name <span class="req">*</span></label>
+            <input formControlName="emergencyContact" type="text" placeholder="Parent / Spouse / Friend" [class.err]="isInvalid('emergencyContact')" />
+            <span class="err-msg" *ngIf="isInvalid('emergencyContact')">Required</span>
           </div>
           <div class="field">
-            <label>Contact Phone</label>
-            <input formControlName="emergencyPhone" type="tel" placeholder="+91 99999 00000" />
+            <label>Contact Phone <span class="req">*</span></label>
+            <input formControlName="emergencyPhone" type="tel" placeholder="+91 99999 00000" [class.err]="isInvalid('emergencyPhone')" />
+            <span class="err-msg" *ngIf="isInvalid('emergencyPhone')">Valid phone required</span>
           </div>
         </div>
       </div>
 
       <!-- ── Documents tab ───────────────────────────────── -->
       <div class="tab-panel" *ngIf="activeTab === 'documents'">
+
+        <p class="section-hint err-hint" *ngIf="docError">
+          At least one document is required. Please upload a document before saving.
+        </p>
 
         <!-- Existing docs (edit mode) -->
         <div *ngIf="isEdit">
@@ -191,6 +195,7 @@
                 <p class="doc-sub">{{ doc.documentType }} · {{ formatBytes(doc.fileSize) }}</p>
               </div>
               <div class="doc-actions">
+                <button type="button" class="doc-btn view"     (click)="viewDoc(doc)"     title="View">👁</button>
                 <button type="button" class="doc-btn download" (click)="downloadDoc(doc)" title="Download">⬇</button>
                 <button type="button" class="doc-btn delete"   (click)="deleteExistingDoc(doc)" title="Delete">✕</button>
               </div>

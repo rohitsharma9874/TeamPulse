@@ -1,10 +1,11 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace TeamPulse.Application.DTOs.User
 {
     public record CreateUserRequest(
         string    Username,
-        string    Password,
         string    Name,
-        string    Email,
+        [EmailAddress] string    Email,
         string    Role,
         string?   Department,
         string?   Phone,

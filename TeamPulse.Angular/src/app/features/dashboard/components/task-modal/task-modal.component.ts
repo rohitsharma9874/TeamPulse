@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from '@angular/forms';
+import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
 import { Task, TaskRequest } from '../../../../core/models/task.model';
 import { TaskDocument } from '../../../../core/models/task-document.model';
 import { PaymentTransaction, PAYMENT_METHODS } from '../../../../core/models/payment-transaction.model';
@@ -15,7 +16,7 @@ export interface TaskSavePayload {
 @Component({
   standalone: true,
   selector: 'app-task-modal',
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, DatePickerComponent],
   templateUrl: './task-modal.component.html',
   styleUrls: ['./task-modal.component.scss'],
 })

@@ -26,7 +26,6 @@ export class PlatformAdminComponent implements OnInit {
     tagline:       ['', Validators.required],
     logoUrl:       [''],
     adminUsername: ['', Validators.required],
-    adminPassword: ['', [Validators.required, Validators.minLength(8)]],
     adminName:     ['', Validators.required],
     adminEmail:    ['', [Validators.required, Validators.email]],
   });
@@ -87,7 +86,6 @@ export class PlatformAdminComponent implements OnInit {
       tagline:       v.tagline,
       logoUrl:       v.logoUrl || null,
       adminUsername: v.adminUsername,
-      adminPassword: v.adminPassword,
       adminName:     v.adminName,
       adminEmail:    v.adminEmail,
     };

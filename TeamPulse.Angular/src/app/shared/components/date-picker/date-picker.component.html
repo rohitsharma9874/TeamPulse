@@ -1,0 +1,86 @@
+<div class="dp">
+  <!-- Trigger -->
+  <div class="dp__input" [class.dp__input--error]="hasError" (click)="toggle($event)">
+    <span [class.dp__placeholder]="!value">{{ displayValue || placeholder }}</span>
+    <svg class="dp__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+      <rect x="2" y="4" width="16" height="14" rx="2"/>
+      <line x1="6" y1="2" x2="6" y2="6" stroke-linecap="round"/>
+      <line x1="14" y1="2" x2="14" y2="6" stroke-linecap="round"/>
+      <line x1="2" y1="9" x2="18" y2="9"/>
+    </svg>
+  </div>
+
+  <!-- Backdrop -->
+  <div class="dp__backdrop" *ngIf="isOpen" (click)="closePanel()"></div>
+
+  <!-- Panel -->
+  <div class="dp__panel" *ngIf="isOpen" (click)="$event.stopPropagation()">
+
+    <!-- ── Day view ─────────────────────────────────────────── -->
+    <ng-container *ngIf="viewMode === 'day'">
+      <div class="dp__nav">
+        <button type="button" class="dp__nav-arrow" (click)="prevMonth()">&#8249;</button>
+        <div class="dp__nav-center">
+          <button type="button" class="dp__nav-btn" (click)="switchToMonth()">{{ months[viewMonth] }}</button>
+          <button type="button" class="dp__nav-btn" (click)="switchToYear()">{{ viewYear }}</button>
+        </div>
+        <button type="button" class="dp__nav-arrow" (click)="nextMonth()">&#8250;</button>
+      </div>
+      <div class="dp__weekdays">
+        <span *ngFor="let w of weekdays">{{ w }}</span>
+      </div>
+      <div class="dp__days">
+        <button *ngFor="let d of calendarDays" type="button"
+          class="dp__day"
+          [class.dp__day--other]="d.otherMonth"
+          [class.dp__day--today]="d.isToday && !d.isSelected"
+          [class.dp__day--selected]="d.isSelected"
+          [disabled]="d.disabled"
+          (click)="selectDay(d)">
+          {{ d.day }}
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- ── Month view ───────────────────────────────────────── -->
+    <ng-container *ngIf="viewMode === 'month'">
+      <div class="dp__nav">
+        <button type="button" class="dp__nav-arrow" (click)="viewYear = viewYear - 1">&#8249;</button>
+        <div class="dp__nav-center">
+          <button type="button" class="dp__nav-btn" (click)="switchToYear()">{{ viewYear }}</button>
+        </div>
+        <button type="button" class="dp__nav-arrow" (click)="viewYear = viewYear + 1">&#8250;</button>
+      </div>
+      <div class="dp__months">
+        <button *ngFor="let m of monthShort; let i = index" type="button"
+          class="dp__month"
+          [class.dp__month--selected]="isMonthSelected(i)"
+          [disabled]="isMonthDisabled(i)"
+          (click)="selectMonth(i)">
+          {{ m }}
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- ── Year view ────────────────────────────────────────── -->
+    <ng-container *ngIf="viewMode === 'year'">
+      <div class="dp__nav">
+        <button type="button" class="dp__nav-arrow" (click)="prevDecade()">&#8249;</button>
+        <div class="dp__nav-center">
+          <span class="dp__nav-label">{{ decadeStart }}–{{ decadeStart + 9 }}</span>
+        </div>
+        <button type="button" class="dp__nav-arrow" (click)="nextDecade()">&#8250;</button>
+      </div>
+      <div class="dp__years">
+        <button *ngFor="let y of calendarYears" type="button"
+          class="dp__year"
+          [class.dp__year--selected]="y === viewYear"
+          [disabled]="isYearDisabled(y)"
+          (click)="selectYear(y)">
+          {{ y }}
+        </button>
+      </div>
+    </ng-container>
+
+  </div>
+</div>

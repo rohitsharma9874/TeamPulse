@@ -67,55 +67,61 @@
     </div>
   </main>
 
-  <!-- Slide-over panel -->
-  <div class="pa-overlay" *ngIf="showForm" (click)="closeForm()"></div>
-  <aside class="pa-panel" *ngIf="showForm">
-    <div class="pa-panel-header">
+  <!-- Modal -->
+  <div class="pa-modal-backdrop" *ngIf="showForm" (click)="closeForm()"></div>
+  <div class="pa-modal" *ngIf="showForm" role="dialog" aria-modal="true">
+    <div class="pa-modal-header">
       <h3>{{ editingTenant ? 'Edit Tenant' : 'Add Tenant' }}</h3>
-      <button class="pa-close" (click)="closeForm()">✕</button>
+      <button class="pa-modal-close" (click)="closeForm()">✕</button>
     </div>
 
     <p class="pa-error" *ngIf="error">{{ error }}</p>
 
     <!-- Create form -->
     <form *ngIf="!editingTenant" [formGroup]="createForm" (ngSubmit)="saveCreate()">
-      <div class="pa-section-label">Company Details</div>
-      <div class="field">
-        <label>Company Code <span class="hint">3–10 uppercase letters/digits, e.g. ABC001</span></label>
-        <input formControlName="id" type="text" placeholder="ABC001" style="text-transform:uppercase" />
-      </div>
-      <div class="field">
-        <label>Company Name</label>
-        <input formControlName="name" type="text" placeholder="ABC Consulting" />
-      </div>
-      <div class="field">
-        <label>Tagline</label>
-        <input formControlName="tagline" type="text" placeholder="Your Finance Partner" />
-      </div>
-      <div class="field">
-        <label>Logo URL <span class="hint">optional</span></label>
-        <input formControlName="logoUrl" type="url" placeholder="https://..." />
+      <div class="pa-modal-body">
+        <p class="pa-section-label">Company Details</p>
+        <div class="field full">
+          <label>Company Code <span class="hint">3–10 uppercase letters/digits, e.g. ABC001</span></label>
+          <input formControlName="id" type="text" placeholder="ABC001" style="text-transform:uppercase" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Company Name</label>
+            <input formControlName="name" type="text" placeholder="ABC Consulting" />
+          </div>
+          <div class="field">
+            <label>Tagline</label>
+            <input formControlName="tagline" type="text" placeholder="Your Finance Partner" />
+          </div>
+        </div>
+        <div class="field full">
+          <label>Logo URL <span class="hint">optional</span></label>
+          <input formControlName="logoUrl" type="url" placeholder="https://..." />
+        </div>
+
+        <p class="pa-section-label" style="margin-top:1rem">First Admin Account</p>
+        <p class="pa-hint">A welcome email with a link to set their password will be sent to the admin.</p>
+        <div class="field-row">
+          <div class="field">
+            <label>Username</label>
+            <input formControlName="adminUsername" type="text" placeholder="admin" />
+          </div>
+          <div class="field">
+            <label>Full Name</label>
+            <input formControlName="adminName" type="text" placeholder="John Smith" />
+          </div>
+        </div>
+        <div class="field full">
+          <label>Email</label>
+          <input formControlName="adminEmail" type="email" placeholder="admin@company.com" />
+          <p class="field-err" *ngIf="createForm.get('adminEmail')?.invalid && createForm.get('adminEmail')?.touched">
+            Valid email address required
+          </p>
+        </div>
       </div>
 
-      <div class="pa-section-label" style="margin-top:1.5rem">First Admin Account</div>
-      <div class="field">
-        <label>Username</label>
-        <input formControlName="adminUsername" type="text" placeholder="admin" />
-      </div>
-      <div class="field">
-        <label>Password <span class="hint">min 8 characters</span></label>
-        <input formControlName="adminPassword" type="password" placeholder="••••••••" />
-      </div>
-      <div class="field">
-        <label>Full Name</label>
-        <input formControlName="adminName" type="text" placeholder="John Smith" />
-      </div>
-      <div class="field">
-        <label>Email</label>
-        <input formControlName="adminEmail" type="email" placeholder="admin@company.com" />
-      </div>
-
-      <div class="pa-panel-footer">
+      <div class="pa-modal-footer">
         <button type="button" class="btn-outline" (click)="closeForm()">Cancel</button>
         <button type="submit" class="btn-primary" [disabled]="saving || createForm.invalid">
           {{ saving ? 'Creating…' : 'Create Tenant' }}
@@ -125,26 +131,28 @@
 
     <!-- Edit form -->
     <form *ngIf="editingTenant" [formGroup]="editForm" (ngSubmit)="saveEdit()">
-      <div class="field">
-        <label>Company Name</label>
-        <input formControlName="name" type="text" />
-      </div>
-      <div class="field">
-        <label>Tagline</label>
-        <input formControlName="tagline" type="text" />
-      </div>
-      <div class="field">
-        <label>Logo URL <span class="hint">optional</span></label>
-        <input formControlName="logoUrl" type="url" placeholder="https://..." />
+      <div class="pa-modal-body">
+        <div class="field full">
+          <label>Company Name</label>
+          <input formControlName="name" type="text" />
+        </div>
+        <div class="field full">
+          <label>Tagline</label>
+          <input formControlName="tagline" type="text" />
+        </div>
+        <div class="field full">
+          <label>Logo URL <span class="hint">optional</span></label>
+          <input formControlName="logoUrl" type="url" placeholder="https://..." />
+        </div>
       </div>
 
-      <div class="pa-panel-footer">
+      <div class="pa-modal-footer">
         <button type="button" class="btn-outline" (click)="closeForm()">Cancel</button>
         <button type="submit" class="btn-primary" [disabled]="saving || editForm.invalid">
           {{ saving ? 'Saving…' : 'Save Changes' }}
         </button>
       </div>
     </form>
-  </aside>
+  </div>
 
 </div>

@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace TeamPulse.Application.DTOs.Tenant
 {
     public record CreateTenantRequest(
@@ -6,7 +8,6 @@ namespace TeamPulse.Application.DTOs.Tenant
         string Tagline,
         string? LogoUrl,
         string AdminUsername,
-        string AdminPassword,
         string AdminName,
-        string AdminEmail);
+        [Required][EmailAddress] string AdminEmail);
 }

@@ -9,5 +9,6 @@ namespace TeamPulse.Application.Interfaces
         Task<User> RegisterAsync(RegisterUserRequest request, string companyId, string createdByUserId);
         Task<bool> InitiatePasswordResetAsync(string email, string tenantId, string resetLink);
         Task<bool> ResetPasswordAsync(string token, string newPassword);
+        Task<string> CreateSetPasswordLinkAsync(string userId, string appUrl);
     }
 }

@@ -8,6 +8,7 @@ import {
 } from '../../../../core/models/user.model';
 import { MemberDocument, DOCUMENT_TYPES } from '../../../../core/models/member-document.model';
 import { ApiService } from '../../../../core/services/api.service';
+import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
 
 export interface UserSavePayload {
   request: CreateUserRequest | UpdateProfileRequest;
@@ -20,7 +21,7 @@ type ModalTab = 'account' | 'work' | 'address' | 'emergency' | 'documents';
 @Component({
   standalone: true,
   selector: 'app-user-modal',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePickerComponent],
   templateUrl: './user-modal.component.html',
   styleUrls: ['./user-modal.component.scss'],
 })
@@ -35,7 +36,7 @@ export class UserModalComponent implements OnChanges {
   @Output() cancel = new EventEmitter<void>();
 
   form!: FormGroup;
-  showPassword = false;
+  docError = false;
   activeTab: ModalTab = 'account';
 
   // Member documents (edit mode)
@@ -68,7 +69,6 @@ export class UserModalComponent implements OnChanges {
     this.form = this.fb.group({
       // Account
       username:   ['', [Validators.required, Validators.minLength(3)]],
-      password:   ['', [Validators.required, Validators.minLength(6)]],
       name:       ['', Validators.required],
       email:      ['', [Validators.required, Validators.email]],
       // Work
@@ -87,9 +87,9 @@ export class UserModalComponent implements OnChanges {
       // Personal
       gender:      [''],
       dateOfBirth: [''],
-      // Emergency
-      emergencyContact: [''],
-      emergencyPhone:   [''],
+      // Emergency (required)
+      emergencyContact: ['', Validators.required],
+      emergencyPhone:   ['', [Validators.required, Validators.pattern(/^[0-9+\s\-()]{7,15}$/)]],
       // Password change (edit mode only)
       newPassword: [''],
     });
@@ -100,13 +100,10 @@ export class UserModalComponent implements OnChanges {
     this.activeTab = 'account';
     this.pendingFiles = [];
     this.existingDocs = [];
-    this.showPassword = false;
+    this.docError = false;
 
     if (this.isEdit && this.editingUser) {
       const u = this.editingUser;
-      // In edit mode password is optional
-      this.form.get('password')?.clearValidators();
-      this.form.get('password')?.updateValueAndValidity();
       this.form.get('username')?.disable();
       this.form.patchValue({
         username:         u.username,
@@ -132,8 +129,6 @@ export class UserModalComponent implements OnChanges {
       });
       this.loadDocs();
     } else {
-      this.form.get('password')?.setValidators([Validators.required, Validators.minLength(6)]);
-      this.form.get('password')?.updateValueAndValidity();
       this.form.get('username')?.enable();
       this.form.reset({ role: 'trainee' });
     }
@@ -212,6 +207,20 @@ export class UserModalComponent implements OnChanges {
     });
   }
 
+  viewDoc(doc: MemberDocument): void {
+    const viewable = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    this.api.downloadMemberDocument(doc.id).subscribe(blob => {
+      const url = URL.createObjectURL(new Blob([blob], { type: doc.contentType }));
+      if (viewable.includes(doc.contentType)) {
+        window.open(url, '_blank');
+      } else {
+        const link = document.createElement('a');
+        link.href = url; link.download = doc.originalName; link.click();
+        URL.revokeObjectURL(url);
+      }
+    });
+  }
+
   formatBytes(bytes: number): string {
     if (bytes < 1024)      return `${bytes} B`;
     if (bytes < 1_048_576) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -230,7 +239,16 @@ export class UserModalComponent implements OnChanges {
   // ── Submit ────────────────────────────────────────────────
   submit(): void {
     this.form.markAllAsTouched();
-    if (this.form.invalid) return;
+    // Require at least one document for new members
+    const hasDoc = this.isEdit
+      ? (this.existingDocs.length > 0 || this.pendingFiles.length > 0)
+      : this.pendingFiles.length > 0;
+    if (!hasDoc) {
+      this.docError = true;
+      this.activeTab = 'documents';
+    }
+    if (this.form.invalid || !hasDoc) return;
+    this.docError = false;
     const v = this.form.getRawValue();
 
     if (this.isEdit) {
@@ -257,7 +275,6 @@ export class UserModalComponent implements OnChanges {
     } else {
       const req: CreateUserRequest = {
         username:         v.username.trim(),
-        password:         v.password,
         name:             v.name.trim(),
         email:            v.email.trim(),
         role:             v.role,

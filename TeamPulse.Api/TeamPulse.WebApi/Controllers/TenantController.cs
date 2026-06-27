@@ -16,13 +16,24 @@ namespace TeamPulse.Api.Controllers
     {
         private readonly TeamPulseDbContext _db;
         private readonly IPasswordHasher _hasher;
+        private readonly IAuthService _authService;
+        private readonly IEmailService _emailService;
+        private readonly IConfiguration _config;
 
         private string CurrentRole => User.FindFirstValue("role") ?? string.Empty;
 
-        public TenantController(TeamPulseDbContext db, IPasswordHasher hasher)
+        public TenantController(
+            TeamPulseDbContext db,
+            IPasswordHasher hasher,
+            IAuthService authService,
+            IEmailService emailService,
+            IConfiguration config)
         {
-            _db     = db;
-            _hasher = hasher;
+            _db           = db;
+            _hasher       = hasher;
+            _authService  = authService;
+            _emailService = emailService;
+            _config       = config;
         }
 
         [HttpGet]
@@ -70,7 +81,7 @@ namespace TeamPulse.Api.Controllers
             var admin = new User
             {
                 Username     = req.AdminUsername,
-                PasswordHash = _hasher.Hash(req.AdminPassword),
+                PasswordHash = _hasher.Hash(GenerateRandomPassword()),
                 Name         = req.AdminName,
                 Email        = req.AdminEmail,
                 Role         = "admin",
@@ -81,7 +92,28 @@ namespace TeamPulse.Api.Controllers
             };
             _db.Users.Add(admin);
 
-            await _db.SaveChangesAsync();
+            try
+            {
+                await _db.SaveChangesAsync();
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+                when (ex.InnerException?.Message.Contains("IX_Users_Email") == true ||
+                      ex.InnerException?.Message.Contains("IX_Users_Username") == true)
+            {
+                return Conflict(new { message = "A user with that username or email already exists in this tenant." });
+            }
+
+            // Send welcome email — non-blocking: failure does not roll back tenant creation
+            if (!string.IsNullOrWhiteSpace(admin.Email) && !admin.Email.EndsWith("@teampulse.local"))
+            {
+                try
+                {
+                    var appUrl = _config["App:Url"] ?? "http://localhost:4200";
+                    var link   = await _authService.CreateSetPasswordLinkAsync(admin.Id, appUrl);
+                    await _emailService.SendWelcomeEmailAsync(admin.Email, admin.Name, tenant.Id, admin.Username, link);
+                }
+                catch { /* email failure is non-fatal */ }
+            }
 
             return CreatedAtAction(nameof(GetAll), new { id = tenant.Id }, new
             {
@@ -107,6 +139,16 @@ namespace TeamPulse.Api.Controllers
 
             await _db.SaveChangesAsync();
             return Ok(new { tenant.Id, tenant.Name, tenant.Tagline, tenant.LogoUrl, tenant.IsActive });
+        }
+
+        private static string GenerateRandomPassword()
+        {
+            const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$";
+            var bytes = new byte[16];
+            System.Security.Cryptography.RandomNumberGenerator.Fill(bytes);
+            var sb = new System.Text.StringBuilder();
+            foreach (var b in bytes) sb.Append(chars[b % chars.Length]);
+            return sb.ToString();
         }
 
         [HttpPatch("{id}/toggle")]

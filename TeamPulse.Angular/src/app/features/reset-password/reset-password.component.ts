@@ -10,6 +10,16 @@ function passwordsMatch(control: AbstractControl): ValidationErrors | null {
   return pass && confirm && pass !== confirm ? { mismatch: true } : null;
 }
 
+function passwordStrength(control: AbstractControl): ValidationErrors | null {
+  const val = (control.value as string) ?? '';
+  const errors: ValidationErrors = {};
+  if (val.length < 8)       errors['minLength'] = true;
+  if (!/[A-Z]/.test(val))   errors['uppercase'] = true;
+  if (!/[a-z]/.test(val))   errors['lowercase'] = true;
+  if (!/[0-9]/.test(val))   errors['number']    = true;
+  return Object.keys(errors).length ? errors : null;
+}
+
 @Component({
   standalone: true,
   selector: 'app-reset-password',
@@ -20,11 +30,17 @@ function passwordsMatch(control: AbstractControl): ValidationErrors | null {
 export class ResetPasswordComponent implements OnInit {
   form = this.fb.nonNullable.group(
     {
-      newPassword:     ['', [Validators.required, Validators.minLength(6)]],
+      newPassword:     ['', [Validators.required, passwordStrength]],
       confirmPassword: ['', Validators.required],
     },
     { validators: passwordsMatch }
   );
+
+  get pw(): string        { return this.form.get('newPassword')?.value ?? ''; }
+  get hasMin(): boolean   { return this.pw.length >= 8; }
+  get hasUpper(): boolean { return /[A-Z]/.test(this.pw); }
+  get hasLower(): boolean { return /[a-z]/.test(this.pw); }
+  get hasNum(): boolean   { return /[0-9]/.test(this.pw); }
 
   token    = '';
   loading  = false;

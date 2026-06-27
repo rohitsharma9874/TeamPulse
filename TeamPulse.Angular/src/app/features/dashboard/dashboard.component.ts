@@ -20,6 +20,7 @@ import { KanbanComponent, KanbanStatus } from './components/kanban/kanban.compon
 import { UserModalComponent, UserSavePayload } from './components/user-modal/user-modal.component';
 import { ProfileModalComponent } from './components/profile-modal/profile-modal.component';
 import { MemberDetailModalComponent } from './components/member-detail-modal/member-detail-modal.component';
+import { DatePickerComponent } from '../../shared/components/date-picker/date-picker.component';
 
 type NavSection    = 'overview' | 'tasks' | 'team' | 'activity' | 'deadlines' | 'performance' | 'alerts';
 type TasksTab      = 'list' | 'board' | 'guide';
@@ -35,7 +36,7 @@ interface OrgTier { label: string; rank: number; members: User[]; }
 @Component({
   standalone: true,
   selector: 'app-dashboard',
-  imports: [CommonModule, FormsModule, TaskModalComponent, KanbanComponent, UserModalComponent, ProfileModalComponent, MemberDetailModalComponent],
+  imports: [CommonModule, FormsModule, TaskModalComponent, KanbanComponent, UserModalComponent, ProfileModalComponent, MemberDetailModalComponent, DatePickerComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss'],
 })

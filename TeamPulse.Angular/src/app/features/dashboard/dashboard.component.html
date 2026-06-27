@@ -762,9 +762,9 @@
             </ng-container>
             <!-- Date range picker -->
             <ng-container *ngIf="boardFilterMode === 'range'">
-              <input type="date" class="bfc-input" [(ngModel)]="boardDateFrom" />
+              <app-date-picker [(ngModel)]="boardDateFrom"></app-date-picker>
               <span class="bfc-sep">–</span>
-              <input type="date" class="bfc-input" [(ngModel)]="boardDateTo" [min]="boardDateFrom" />
+              <app-date-picker [(ngModel)]="boardDateTo" [min]="boardDateFrom"></app-date-picker>
               <button *ngIf="boardDateFrom || boardDateTo" class="bfc-clear" (click)="clearBoardFilter()">✕</button>
             </ng-container>
           </div>
@@ -796,9 +796,9 @@
             </select>
             <div class="date-range-filter">
               <label class="filter-label">Deadline From</label>
-              <input class="filter-input filter-date" type="date" [(ngModel)]="taskDateFrom" />
+              <app-date-picker [(ngModel)]="taskDateFrom"></app-date-picker>
               <label class="filter-label">To</label>
-              <input class="filter-input filter-date" type="date" [(ngModel)]="taskDateTo" [min]="taskDateFrom" />
+              <app-date-picker [(ngModel)]="taskDateTo" [min]="taskDateFrom"></app-date-picker>
               <button class="btn-clear-date" *ngIf="taskDateFrom || taskDateTo" (click)="clearDateFilter()" title="Clear date filter">✕</button>
             </div>
             <!-- Push buttons to the far right -->

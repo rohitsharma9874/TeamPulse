@@ -147,9 +147,26 @@
 
 .req { color: #ef4444; }
 
+.field-hint {
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: #9ca3af;
+  margin-left: 0.35rem;
+}
+
 .err-msg {
   font-size: 0.72rem;
   color: #ef4444;
+}
+
+.err-hint {
+  font-size: 0.8rem;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin: 0;
 }
 
 .pw-wrap {
@@ -242,6 +259,7 @@
   align-items: center;
   justify-content: center;
 
+  &.view     { background: #f0fdf4; color: #16a34a; &:hover { background: #dcfce7; } }
   &.download { background: #eff6ff; color: #1d4ed8; &:hover { background: #dbeafe; } }
   &.delete   { background: #fef2f2; color: #dc2626; &:hover { background: #fee2e2; } }
 }

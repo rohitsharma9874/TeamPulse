@@ -18,7 +18,6 @@ export interface CreateTenantRequest {
   tagline: string;
   logoUrl: string | null;
   adminUsername: string;
-  adminPassword: string;
   adminName: string;
   adminEmail: string;
 }

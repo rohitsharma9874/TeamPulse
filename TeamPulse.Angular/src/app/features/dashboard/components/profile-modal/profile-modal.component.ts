@@ -2,13 +2,14 @@ import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UpdateProfileRequest, User } from '../../../../core/models/user.model';
+import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
 
 type ProfileTab = 'personal' | 'address' | 'emergency' | 'security';
 
 @Component({
   standalone: true,
   selector: 'app-profile-modal',
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, DatePickerComponent],
   templateUrl: './profile-modal.component.html',
   styleUrls: ['./profile-modal.component.scss'],
 })

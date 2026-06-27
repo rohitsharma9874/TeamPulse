@@ -76,6 +76,23 @@ namespace TeamPulse.Application.Services
             return true;
         }
 
+        public async Task<string> CreateSetPasswordLinkAsync(string userId, string appUrl)
+        {
+            var user = await _users.GetByIdAsync(userId)
+                ?? throw new InvalidOperationException("User not found.");
+
+            var tokenBytes = RandomNumberGenerator.GetBytes(32);
+            var token = Convert.ToBase64String(tokenBytes)
+                .Replace('+', '-').Replace('/', '_').TrimEnd('=');
+
+            user.PasswordResetToken       = token;
+            user.PasswordResetTokenExpiry = DateTime.UtcNow.AddHours(24);
+            await _users.UpdateAsync(user);
+            await _users.SaveChangesAsync();
+
+            return $"{appUrl}/#/reset-password?token={Uri.EscapeDataString(token)}";
+        }
+
         public async Task<bool> ResetPasswordAsync(string token, string newPassword)
         {
             var user = await _users.GetByResetTokenAsync(token);
