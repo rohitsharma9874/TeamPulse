@@ -24,8 +24,11 @@ These are all env vars the API reads from configuration. For local dev they go i
 | `Jwt__Issuer` | JWT issuer claim | `TeamPulseLocal` |
 | `Jwt__Audience` | JWT audience claim | `TeamPulseLocal` |
 | `AllowedOrigins` | CORS allowed origins (comma-separated) | `https://teampulsewebks.z13.web.core.windows.net` |
-| `Owner__Username` | Hidden super-admin username | *(secret — never commit)* |
-| `Owner__Password` | Hidden super-admin password | *(secret — never commit)* |
+| `Owner__Username` | Hidden super-admin username (per tenant) | *(secret — never commit)* |
+| `Owner__Password` | Hidden super-admin password (per tenant) | *(secret — never commit)* |
+| `PlatformAdmin__Username` | Platform admin username (cross-tenant) | *(secret — never commit)* |
+| `PlatformAdmin__Password` | Platform admin password (cross-tenant) | *(secret — never commit)* |
+| `App__Url` | Frontend base URL — used to build password reset links | `https://teampulsewebks.z13.web.core.windows.net` |
 | `Smtp__Host` | SMTP server for password reset emails | `smtp.gmail.com` |
 | `Smtp__Port` | SMTP port | `587` |
 | `Smtp__Username` | SMTP account email | `your@gmail.com` |
@@ -69,9 +72,12 @@ export const environment = {
 | Key | Value |
 |-----|-------|
 | `tp_token` | JWT access token |
-| `tp_user` | Serialised user object (id, username, name, role, etc.) |
+| `tp_user` | Serialised user object (id, username, name, role, companyId, etc.) |
 | `tp_theme` | `dark` or `light` |
-| `tp_perf_tab` | Last selected Performance sub-tab |
+| `tp_section` | Last visited dashboard section (e.g. `tasks`, `team`) |
+| `tp_overview_tab` | Last selected Overview sub-tab (`pulse`, `workload`, `finances`, `urgent`) |
+| `tp_tasks_tab` | Last selected Tasks sub-tab (`list`, `board`, `guide`) |
+| `tp_perf_tab` | Last selected Performance sub-tab (`leaderboard`, `metrics`, `billing`) |
 
 To force a fresh login, clear both `tp_token` and `tp_user` from DevTools → Application → Session Storage.
 
@@ -82,5 +88,7 @@ To force a fresh login, clear both `tp_token` and `tp_user` from DevTools → Ap
 1. **Never commit credentials** — `appsettings.Development.json` is in `.gitignore`
 2. **SMTP credentials** — env vars on Container App only (`Smtp__Password`)
 3. **Owner credentials** — `Owner__Username` and `Owner__Password` env vars only; never in code or git
-4. **JWT Secret** — must be at least 32 characters; different per environment recommended
-5. **Forgot password endpoint** — always returns 200 regardless of whether email exists (prevents user enumeration)
+4. **Platform admin credentials** — `PlatformAdmin__Username` and `PlatformAdmin__Password` env vars only; never in code or git
+5. **JWT Secret** — must be at least 32 characters; different per environment recommended
+6. **Forgot password endpoint** — always returns 200 regardless of whether the company code or email is valid (prevents user enumeration)
+7. **Tenant isolation** — EF Core global query filters enforce `CompanyId` scoping at the DB layer; no controller needs to manually add `WHERE CompanyId = ?`

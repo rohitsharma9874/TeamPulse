@@ -2,7 +2,7 @@
 
 ## What is TeamPulse?
 
-TeamPulse is a workforce intelligence web application for **KPA & Co.**, a Chartered Accountancy firm. It tracks tasks, deadlines, team performance, billing recovery, and compliance work across audit, tax, and compliance teams.
+TeamPulse is a **multi-tenant** workforce intelligence SaaS platform. The **PLATFORM** tenant (parent company) provisions and manages independent company tenants. Each tenant is a Chartered Accountancy firm or similar professional services organisation that tracks tasks, deadlines, team performance, billing recovery, and compliance work across audit, tax, and compliance teams.
 
 ---
 
@@ -51,14 +51,16 @@ TeamPulse/
 
 | Entity | Key Fields |
 |--------|-----------|
+| `Tenant` | Id (company code e.g. `KPA001`), Name, Tagline, LogoUrl, IsActive, CreatedAt |
 | `User` | Id, Username, PasswordHash, Name, Email, Role, Department, CompanyId, ReportsTo, Designation, Gender, DateOfBirth, JoinDate, Address fields, EmergencyContact |
 | `TaskItem` | Id, Title, Description, AssigneeId, CreatedByUserId, Priority, Status, DueDate, ClientContact, BillingDetails, PaymentStatus, Remarks, CompanyId, CompletedAt |
+| `Notification` | Id, UserId, CompanyId, Type (task_assigned \| deadline_approaching), Message, TaskId, IsRead, CreatedAt |
 | `AuditLog` | Id, CompanyId, ChangedBy, EntityType, EntityId, Action, NewValue, OldValue, ChangedAt |
-| `Attachment` | Id, TaskId, StoredName, OriginalName, ContentType, FileSize, CompanyId, UploadedBy |
+| `TaskDocument` | Id, TaskId, StoredName, OriginalName, ContentType, FileSize, CompanyId, UploadedBy |
 | `MemberDocument` | Id, UserId, DocumentType, StoredName, OriginalName, ContentType, FileSize, CompanyId |
 | `PaymentTransaction` | Id, TaskId, Amount, PaymentDate, Method, Notes, CompanyId |
 
-All entities have `IsDeleted` (soft delete) and `CompanyId` for multi-tenancy.
+`Tenant` has no soft delete. All other entities have `IsDeleted` (soft delete) and `CompanyId` for tenant isolation. EF Core global query filters enforce tenant isolation automatically from the JWT `companyId` claim.
 
 ---
 
@@ -68,14 +70,22 @@ Base URL: `/api`
 
 | Method | Path | Description | Auth |
 |--------|------|-------------|------|
-| POST | `/auth/login` | Login, returns JWT + user object | Public |
-| POST | `/auth/forgot-password` | Sends reset email (always 200) | Public |
+| POST | `/auth/login` | Login with company code + credentials, returns JWT + user | Public |
+| POST | `/auth/forgot-password` | Sends reset email scoped to tenant (always 200) | Public |
 | POST | `/auth/reset-password` | Resets password via token | Public |
+| GET | `/config?tenantId=X` | Returns tenant branding (name, tagline, logoUrl) | Public |
+| GET | `/tenant` | List all tenants with user count | platform-admin only |
+| POST | `/tenant` | Create tenant + first admin user | platform-admin only |
+| PUT | `/tenant/{id}` | Update tenant branding | platform-admin only |
+| PATCH | `/tenant/{id}/toggle` | Toggle tenant active/inactive | platform-admin only |
+| GET | `/notification` | Personal notifications (lazily creates deadline alerts) | Any role |
+| PATCH | `/notification/{id}/read` | Mark one notification as read | Any role |
+| PATCH | `/notification/read-all` | Mark all notifications as read | Any role |
 | GET | `/user` | List all users in company | Any role |
 | POST | `/user` | Create new user | Admin/Sub-Admin/Owner |
 | PUT | `/user/{id}` | Update profile | Self or Admin/Owner |
 | DELETE | `/user/{id}` | Soft-delete user | Admin/Sub-Admin/Owner |
-| GET | `/task` | List tasks (filtered by role) | Any role |
+| GET | `/task` | List tasks (filtered by role tier and department) | Any role |
 | POST | `/task` | Create task | Tier 1–3 + Owner |
 | PUT | `/task/{id}` | Update task | Tier 1–3 + Owner |
 | DELETE | `/task/{id}` | Delete task | Tier 1–2 + Owner |
@@ -91,7 +101,7 @@ Base URL: `/api`
 | DELETE | `/member-document/{id}` | Delete member document | Any role |
 | GET | `/payment-transaction` | List transactions | Any role |
 | POST | `/payment-transaction` | Add transaction | Tier 1–3 + Owner |
-| GET | `/health` | Health check | Public |
+| GET | `/health` | Health check (also used as pre-warm ping) | Public |
 
 ---
 

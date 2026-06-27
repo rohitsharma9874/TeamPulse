@@ -5,7 +5,8 @@
 ### Production
 | Resource | URL |
 |----------|-----|
-| Angular App | https://teampulsewebks.z13.web.core.windows.net/#/login |
+| Angular App (Login) | https://teampulsewebks.z13.web.core.windows.net/#/login |
+| Platform Admin Panel | https://teampulsewebks.z13.web.core.windows.net/#/platform-admin |
 | API Base | https://teampulse-api.yellowisland-4fe46c53.eastus.azurecontainerapps.io |
 | API Health | https://teampulse-api.yellowisland-4fe46c53.eastus.azurecontainerapps.io/api/health |
 | API Docs (Scalar) | https://teampulse-api.yellowisland-4fe46c53.eastus.azurecontainerapps.io/scalar/v1 *(dev only — disabled in production)* |
@@ -13,14 +14,16 @@
 ### Staging
 | Resource | URL |
 |----------|-----|
-| Angular App | https://teampulsewebstg.z13.web.core.windows.net/#/login |
+| Angular App (Login) | https://teampulsewebstg.z13.web.core.windows.net/#/login |
+| Platform Admin Panel | https://teampulsewebstg.z13.web.core.windows.net/#/platform-admin |
 | API Base | https://teampulse-api-staging.yellowisland-4fe46c53.eastus.azurecontainerapps.io |
 | API Health | https://teampulse-api-staging.yellowisland-4fe46c53.eastus.azurecontainerapps.io/api/health |
 
 ### Local Development
 | Resource | URL |
 |----------|-----|
-| Angular App | http://localhost:4200 |
+| Angular App (Login) | http://localhost:4200/#/login |
+| Platform Admin Panel | http://localhost:4200/#/platform-admin |
 | API Base | http://localhost:5000 |
 | Scalar API Docs | http://localhost:5000/scalar/v1 |
 

@@ -1,21 +1,51 @@
 # 07 — Features
 
+## Multi-Tenancy
+
+TeamPulse is a multi-tenant SaaS platform. Each company is a **tenant** identified by a short company code (e.g. `KPA001`).
+
+**Tenant isolation:** EF Core global query filters scope every DB query to `CompanyId == tenantId` automatically, derived from the JWT `companyId` claim. Platform admins (role `platform-admin`, `CompanyId = PLATFORM`) bypass all filters.
+
+**Tenant branding:** Each tenant has a Name, Tagline, and optional LogoUrl. On login, Angular fetches branding via `GET /api/config?tenantId=X` and caches it in `TenantService`. The sidebar and page title reflect the active tenant's name instead of a hardcoded string.
+
+**PLATFORM tenant:** A reserved tenant created at startup for the parent company's own admin. Users with `companyId = PLATFORM` and role `platform-admin` access the Platform Admin Panel.
+
+---
+
+## Platform Admin Panel (`/platform-admin`)
+
+Accessible only to users with role `platform-admin`. Redirected here automatically after login.
+
+Features:
+- **Tenant list** — table showing all tenants: Code, Name, Tagline, User Count, Created, Status (Active/Inactive)
+- **Add Tenant** — slide-over form: company details (code, name, tagline, logo URL) + first admin account (username, password, full name, email)
+- **Edit Tenant** — update branding (name, tagline, logo URL) for any existing tenant
+- **Suspend / Reactivate** — toggle a tenant's `IsActive` flag. Suspended tenants cannot log in. The PLATFORM tenant cannot be suspended.
+
+**Company code rules:** 3–10 uppercase letters/digits (e.g. `KPA001`, `ABC`). Immutable after creation.
+
+---
+
 ## Authentication
 
 **Login** (`/login`)
-- Username + password login with BCrypt verification
+- Enter **Company Code**, username, and password
+- API validates the tenant is active before checking credentials
 - Returns JWT token (8-hour expiry) + user object
 - Token stored in `sessionStorage` (`tp_token`)
+- On success: platform-admin → `/platform-admin`; all other roles → `/dashboard`
+- **Pre-warm ping:** On page load, Angular immediately fires `GET /api/health` to warm up the Container App. When the user clicks Sign In, the login waits for the warm-up to complete first, eliminating the cold-start delay.
 - 30-minute inactivity timeout — auto-logout after idle
 
 **Forgot Password** (`/forgot-password`)
-- User enters email address
-- Always returns 200 regardless of whether email is registered (prevents user enumeration)
-- Sends password reset link if email matches a user
+- User enters **Company Code** and email address
+- API validates the tenant is active, then looks up the email scoped to that tenant only
+- Always returns 200 regardless of whether the email or company code is valid (prevents enumeration)
+- Sends password reset link if the email matches a user in that tenant
 - Requires SMTP configured via env vars
 
 **Reset Password** (`/reset-password?token=...`)
-- User arrives via emailed link with a time-limited token
+- User arrives via emailed link with a time-limited token (1 hour)
 - Sets a new password
 
 ---
@@ -62,15 +92,18 @@ Two sub-tabs:
 - Payment Status (Pending / Received / N/A)
 - Remarks
 
-**Task filters:** Search by title, filter by status, filter by priority
+**Task filters:** Search by title, filter by status, filter by priority, filter by date range
 
 **Export CSV:** Downloads the current filtered task list as a CSV file
 
 **Task Documents:** Upload/download/delete attachments per task (up to 20 MB per file)
 
-**Role visibility:**
-- Tier 1–3 + Owner → see all company tasks
-- Tier 4–5 → see only tasks assigned to or created by them
+**Role visibility (enforced on the API):**
+- Owner, Admin, Sub-Admin, Senior Manager, Managing Partner, Partner → see all company tasks
+- Manager-tier roles (manager, audit-manager, tax-manager, compliance-manager) → see only tasks where the assignee is in the same department as the manager
+- Associates, executives, assistants, trainees → see only tasks assigned to or created by them
+
+**Pagination:** 20 tasks per page. Prev/Next controls appear when there are more than 20 results. Page resets automatically when filters change.
 
 ---
 
@@ -91,6 +124,8 @@ Two-column layout:
 **Hierarchy view** — indented list organised by `reportsTo` reporting lines, showing the org chart structure
 
 **Search** — filters across name, role, department, designation in real time
+
+**Pagination:** 24 members per page in grid view. Prev/Next controls appear when there are more than 24 members.
 
 **Member Detail Drawer** — slides in from the right when clicking a member card. Tabbed:
 - **Profile** — all contact and work info
@@ -154,6 +189,27 @@ Three sub-tabs (selection persisted across page navigations):
 
 ---
 
+## Notifications
+
+A unified notification bell appears in the topbar for **all users**.
+
+**Badge count:**
+- Personal unread notifications + (for admins/managers) open team alerts
+
+**Personal notifications:**
+- `task_assigned` — created when a task is assigned to you by someone else (on create or re-assign)
+- `deadline_approaching` — automatically created when you fetch notifications if you have a task due within 24 hours that hasn't been completed (one per task per day)
+
+**Team alerts (admins/managers only):** The dropdown also shows critical/warning team-wide alerts (overdue tasks, billing issues) below a divider.
+
+**Actions:**
+- Click a notification → marks it read and navigates to the Tasks section
+- "Mark all read" button clears the badge for all personal notifications
+
+**Polling:** The Angular `NotificationService` polls `GET /api/notification` every 30 seconds while the dashboard is open.
+
+---
+
 ## Activity Feed
 
 Chronological log of all task and user actions across the company.
@@ -166,6 +222,8 @@ Each entry shows:
 
 Activities are auto-logged by the API on all task CRUD operations and status changes.
 
+**Pagination:** 15 entries per page with Prev/Next controls.
+
 ---
 
 ## Dark Mode
@@ -173,6 +231,15 @@ Activities are auto-logged by the API on all task CRUD operations and status cha
 Toggle button in the top bar. Persists via `localStorage` (`tp_theme`).
 
 Implementation: sets `data-theme="dark"` on the `<html>` element. All colours defined as CSS custom properties in `styles.scss` — automatically switch based on `[data-theme="dark"]` selector.
+
+---
+
+## Mobile Responsiveness
+
+The dashboard is responsive across devices:
+
+- **Tablet (≤768px):** Sidebar becomes a hidden overlay — the hamburger button in the topbar slides it in. Stats grid collapses to 2 columns. Tables and Kanban board are horizontally scrollable. Notification dropdown expands to full width.
+- **Phone (≤480px):** Stats grid collapses to 1 column. Topbar condenses. Slide-over modals (task, user) go full-screen.
 
 ---
 

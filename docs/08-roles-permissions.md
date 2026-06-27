@@ -6,6 +6,7 @@ Lower rank number = more senior / more permissions.
 
 | Rank | Role value | Display label | Tier |
 |------|-----------|--------------|------|
+| — | `platform-admin` | Platform Admin | Platform (cross-tenant) |
 | 0 | `owner` | Owner | 1 (full access) |
 | 1 | `admin` | Admin | 1 |
 | 2 | `sub-admin` | Sub Admin | 1 |
@@ -41,7 +42,7 @@ Lower rank number = more senior / more permissions.
 | Create tasks | ✅ | ✅ | ✅ | ❌ | ❌ |
 | Edit tasks | ✅ | ✅ | ✅ | ❌ | ❌ |
 | Delete tasks | ✅ | ✅ | ❌ | ❌ | ❌ |
-| View all tasks | ✅ | ✅ | ✅ | ❌ (own only) | ❌ (own only) |
+| View all tasks | ✅ | ✅ | ⚠️ dept only | ❌ (own only) | ❌ (own only) |
 | Export CSV | ✅ | ✅ | ✅ | ❌ | ❌ |
 | View Billing tab | ✅ | ✅ | ✅ | ❌ | ❌ |
 | Add member | ✅ | ❌ | ❌ | ❌ | ❌ |
@@ -53,16 +54,35 @@ Lower rank number = more senior / more permissions.
 
 ## API-Level Role Checks
 
-> **Important:** The role strings in the API HashSets use a different naming convention than the roles created through the Add Member UI. The API uses generic hyphenated names (`senior-manager`, `audit-manager`) while the frontend ROLE_GROUPS uses specific underscore names (`senior_manager_audit`, `manager_audit`). A user created via the UI with role `manager_audit` would be treated as a tier-4 associate by the API (not found in WriteTaskRoles), and would only see their own tasks. This is a known inconsistency. Use `admin` or `sub-admin` for full management access.
+> **Note on role naming:** The API uses hyphenated role names (`senior-manager`, `audit-manager`, `compliance-manager`) while the frontend `ROLE_GROUPS` uses underscore names (`senior_manager_audit`, `manager_audit`). Users created through the Add Member UI receive the underscore variants. The API's `ManagerRoles` and `AllTaskRoles` sets check with `OrdinalIgnoreCase`, so minor case differences are handled, but the hyphen/underscore difference means a user with role `manager_audit` will not be found in `ManagerRoles` and will fall through to associate-level access (own tasks only). Use `audit-manager` (hyphenated) when creating manager-tier users through the API or direct DB seed.
 
 ### TaskController
 
 | Action | Allowed roles |
 |--------|--------------|
-| GET all tasks | Any authenticated (filtered by role for non-managers) |
+| GET all tasks | Any authenticated; visibility filtered by role (see below) |
 | POST task | owner, admin, sub-admin, senior-manager, managing-partner, partner, manager, audit-manager, tax-manager, compliance-manager |
 | PUT task | Same as POST |
 | DELETE task | owner, admin, sub-admin, senior-manager, managing-partner, partner |
+
+**GET task visibility rules:**
+- `AllTaskRoles` (see everything): owner, admin, sub-admin, senior-manager, managing-partner, partner
+- `ManagerRoles` (department scope): manager, audit-manager, tax-manager, compliance-manager — tasks where the assignee shares the manager's department
+- All other roles: tasks assigned to or created by themselves only
+
+### NotificationController
+
+| Action | Allowed roles |
+|--------|--------------|
+| GET notifications | Any authenticated (personal scope — own userId) |
+| PATCH /{id}/read | Any authenticated (own notifications only) |
+| PATCH /read-all | Any authenticated (own notifications only) |
+
+### TenantController
+
+| Action | Allowed roles |
+|--------|--------------|
+| All tenant CRUD | `platform-admin` only |
 
 ### UserController
 
@@ -89,9 +109,28 @@ Lower rank number = more senior / more permissions.
 
 ---
 
+## The Platform Admin Account
+
+The platform admin is a cross-tenant super-admin that manages all tenants:
+- Has role `platform-admin` and `companyId = PLATFORM`
+- Can never be created through the tenant UI — only via env vars at startup
+- Bypasses all EF Core tenant query filters
+- Accesses the Platform Admin Panel at `/platform-admin`
+- Is filtered out of every tenant's user lists (never returned by `/api/user`)
+
+**Setup:** Set these on the Container App:
+```
+PlatformAdmin__Username=<your-chosen-username>
+PlatformAdmin__Password=<your-chosen-password>
+```
+
+On startup, `SeedAsync` reads these env vars and creates the platform-admin user under the PLATFORM tenant if it doesn't exist. If the env vars are not set, no platform-admin is created.
+
+---
+
 ## The Owner Account
 
-The owner is a hidden super-admin account that:
+The owner is a hidden super-admin account within a specific tenant that:
 - Has rank 0 (above all other roles)
 - Can never be created through the UI — only via env vars at Container App startup
 - Has every permission in the system

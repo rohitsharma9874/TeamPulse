@@ -161,8 +161,11 @@ az containerapp create \
     "Jwt__Issuer=TeamPulseLocal" \
     "Jwt__Audience=TeamPulseLocal" \
     "AllowedOrigins=https://teampulsewebks.z13.web.core.windows.net" \
+    "App__Url=https://teampulsewebks.z13.web.core.windows.net" \
     "Owner__Username=<owner-username>" \
-    "Owner__Password=<owner-password>"
+    "Owner__Password=<owner-password>" \
+    "PlatformAdmin__Username=<platform-admin-username>" \
+    "PlatformAdmin__Password=<platform-admin-password>"
 ```
 
 Production API URL: `https://teampulse-api.yellowisland-4fe46c53.eastus.azurecontainerapps.io`
@@ -195,7 +198,7 @@ az containerapp show `
   -o table
 ```
 
-All 7 variables should appear: `ConnectionStrings__DefaultConnection`, `Jwt__Secret`, `Jwt__Issuer`, `Jwt__Audience`, `AllowedOrigins`, `Owner__Username`, `Owner__Password`.
+All 9 variables should appear: `ConnectionStrings__DefaultConnection`, `Jwt__Secret`, `Jwt__Issuer`, `Jwt__Audience`, `AllowedOrigins`, `App__Url`, `Owner__Username`, `Owner__Password`, `PlatformAdmin__Username`, `PlatformAdmin__Password`.
 
 ### Step 4 — Update a specific environment variable
 
@@ -227,8 +230,11 @@ az containerapp create \
     "Jwt__Issuer=TeamPulseLocal" \
     "Jwt__Audience=TeamPulseLocal" \
     "AllowedOrigins=https://teampulsewebstg.z13.web.core.windows.net" \
+    "App__Url=https://teampulsewebstg.z13.web.core.windows.net" \
     "Owner__Username=<owner-username>" \
-    "Owner__Password=<owner-password>"
+    "Owner__Password=<owner-password>" \
+    "PlatformAdmin__Username=<platform-admin-username>" \
+    "PlatformAdmin__Password=<platform-admin-password>"
 ```
 
 Staging API URL: `https://teampulse-api-staging.yellowisland-4fe46c53.eastus.azurecontainerapps.io`
@@ -361,8 +367,8 @@ Use this checklist when setting up from scratch to verify nothing is missed.
 - [ ] Database `TeamPulseDbStaging` created (staging)
 
 ### Container Apps
-- [ ] `teampulse-api` created with all 7 env vars
-- [ ] `teampulse-api-staging` created with all 7 env vars
+- [ ] `teampulse-api` created with all 9 env vars (incl. App__Url, PlatformAdmin__Username/Password)
+- [ ] `teampulse-api-staging` created with all 9 env vars
 - [ ] ACR credentials attached to `teampulse-api` via `az containerapp registry set`
 - [ ] ACR credentials attached to `teampulse-api-staging` via `az containerapp registry set`
 - [ ] Health probe configured on `teampulse-api` (HTTP `/api/health` port 8080)

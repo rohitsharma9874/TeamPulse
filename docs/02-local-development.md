@@ -32,6 +32,13 @@ Create `TeamPulse.API/TeamPulse.WebApi/appsettings.Development.json`:
     "Secret": "TeamPulseLocalSecretKey123456789_ReplaceInProduction_MinimumLength32",
     "Issuer": "TeamPulseLocal",
     "Audience": "TeamPulseLocal"
+  },
+  "App": {
+    "Url": "http://localhost:4200"
+  },
+  "PlatformAdmin": {
+    "Username": "platformadmin",
+    "Password": "platformpass123"
   }
 }
 ```
@@ -46,11 +53,30 @@ Scalar API docs at **http://localhost:5000/scalar/v1**
 
 ### Seed Data Created Automatically
 
-| Username | Password | Role | Name |
-|----------|----------|------|------|
-| admin | password | admin | Koshal Sharma |
-| srmanager | password | senior-manager | Priya Mehta |
-| trainee | password | trainee | Ravi Kumar |
+**Tenants:**
+
+| Tenant ID | Name | Notes |
+|-----------|------|-------|
+| `PLATFORM` | TeamPulse Platform | Parent company — always seeded |
+| `KPA001` | KPA & Co. | Demo tenant — always seeded |
+
+**Users:**
+
+| Company Code | Username | Password | Role | Name |
+|---|----------|----------|------|------|
+| `PLATFORM` | *(from `PlatformAdmin__Username` env var)* | *(from env var)* | platform-admin | Platform Admin |
+| `KPA001` | admin | password | admin | Koshal Sharma |
+| `KPA001` | srmanager | password | senior-manager | Priya Mehta |
+| `KPA001` | trainee | password | trainee | Ravi Kumar |
+
+> The platform-admin account is only seeded if `PlatformAdmin__Username` and `PlatformAdmin__Password` are set in config or env vars.
+
+### Logging In (Local)
+
+The login form requires a **Company Code** as the first field.
+
+- For KPA001 users: enter `KPA001` as the company code
+- For platform admin: enter `PLATFORM` as the company code
 
 ---
 
