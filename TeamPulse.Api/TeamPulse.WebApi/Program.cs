@@ -119,9 +119,10 @@ static async Task SeedAsync(TeamPulseDbContext db, IConfiguration config)
     var platformAdminPassword = config["PlatformAdmin:Password"];
     if (!string.IsNullOrEmpty(platformAdminUsername) && !string.IsNullOrEmpty(platformAdminPassword))
     {
+        // Search globally by role — handles stale records seeded under wrong company
         var existingAdmin = await db.Users
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => u.CompanyId == "PLATFORM" && u.Role == "platform-admin");
+            .FirstOrDefaultAsync(u => u.Role == "platform-admin");
 
         if (existingAdmin is null)
         {
@@ -142,6 +143,8 @@ static async Task SeedAsync(TeamPulseDbContext db, IConfiguration config)
         {
             existingAdmin.Username     = platformAdminUsername;
             existingAdmin.PasswordHash = BCrypt.Net.BCrypt.HashPassword(platformAdminPassword, 12);
+            existingAdmin.CompanyId    = "PLATFORM";  // Migrate if seeded under wrong company
+            existingAdmin.Email        = $"{platformAdminUsername}@teampulse.platform";
             existingAdmin.IsDeleted    = false;
         }
         await db.SaveChangesAsync();
