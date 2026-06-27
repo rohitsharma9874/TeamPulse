@@ -184,89 +184,115 @@ static async Task SeedAsync(TeamPulseDbContext db, IConfiguration config)
         }
     }
 
-    if (db.Users.Any(u => u.CompanyId == companyId && u.Role != "owner")) return;
+    // Upsert demo users — self-healing on every deployment so staging/dev always have known credentials
+    var demoPassword = BCrypt.Net.BCrypt.HashPassword("password", 12);
 
-    var admin = new User
+    var existingAdmin = await db.Users.IgnoreQueryFilters()
+        .FirstOrDefaultAsync(u => u.CompanyId == companyId && u.Username == "admin");
+    if (existingAdmin is null)
     {
-        Username     = "admin",
-        PasswordHash = BCrypt.Net.BCrypt.HashPassword("password", 12),
-        Name         = "Koshal Sharma",
-        Email        = "admin@teampulse.local",
-        Role         = "admin",
-        Department   = "Management",
-        Phone        = "9876543210",
-        PhotoUrl     = "https://ui-avatars.com/api/?name=Koshal+Sharma&background=1B3A6B&color=fff",
-        CompanyId    = companyId,
-        CreatedAt    = DateTime.UtcNow,
-        CreatedBy    = "system"
-    };
-
-    var manager = new User
-    {
-        Username     = "srmanager",
-        PasswordHash = BCrypt.Net.BCrypt.HashPassword("password", 12),
-        Name         = "Priya Mehta",
-        Email        = "priya.mehta@teampulse.local",
-        Role         = "senior-manager",
-        Department   = "Audit",
-        Phone        = "9876543211",
-        PhotoUrl     = "https://ui-avatars.com/api/?name=Priya+Mehta&background=C9A84C&color=fff",
-        CompanyId    = companyId,
-        CreatedAt    = DateTime.UtcNow,
-        CreatedBy    = "system"
-    };
-
-    var trainee = new User
-    {
-        Username     = "trainee",
-        PasswordHash = BCrypt.Net.BCrypt.HashPassword("password", 12),
-        Name         = "Ravi Kumar",
-        Email        = "ravi.kumar@teampulse.local",
-        Role         = "trainee",
-        Department   = "Audit",
-        Phone        = "9876543212",
-        PhotoUrl     = "https://ui-avatars.com/api/?name=Ravi+Kumar&background=10b981&color=fff",
-        CompanyId    = companyId,
-        CreatedAt    = DateTime.UtcNow,
-        CreatedBy    = "system"
-    };
-
-    db.Users.AddRange(admin, manager, trainee);
-
-    db.Tasks.AddRange(
-        new TaskItem
+        db.Users.Add(new User
         {
-            Title           = "GST Return Filing",
-            Description     = "File GST returns for Q1 prime clients.",
-            AssigneeId      = manager.Id,
-            Priority        = "Urgent",
-            Status          = "new",
-            DueDate         = DateTime.UtcNow.AddDays(3),
-            ClientContact   = "Vikas Shah / 9812345678",
-            BillingDetails  = "₹350",
-            PaymentStatus   = "Pending",
-            Remarks         = "Urgent compliance",
-            CompanyId       = companyId,
-            CreatedByUserId = admin.Id,
-            CreatedAt       = DateTime.UtcNow,
-            CreatedBy       = admin.Id
-        },
-        new TaskItem
+            Username     = "admin",
+            PasswordHash = demoPassword,
+            Name         = "Koshal Sharma",
+            Email        = "admin@teampulse.local",
+            Role         = "admin",
+            Department   = "Management",
+            Phone        = "9876543210",
+            PhotoUrl     = "https://ui-avatars.com/api/?name=Koshal+Sharma&background=1B3A6B&color=fff",
+            CompanyId    = companyId,
+            CreatedAt    = DateTime.UtcNow,
+            CreatedBy    = "system"
+        });
+    }
+    else { existingAdmin.PasswordHash = demoPassword; existingAdmin.IsDeleted = false; }
+
+    var existingManager = await db.Users.IgnoreQueryFilters()
+        .FirstOrDefaultAsync(u => u.CompanyId == companyId && u.Username == "srmanager");
+    if (existingManager is null)
+    {
+        db.Users.Add(new User
         {
-            Title           = "Onboarding Documentation",
-            Description     = "Update trainee onboarding materials for new joiners.",
-            AssigneeId      = trainee.Id,
-            Priority        = "Medium",
-            Status          = "in-progress",
-            DueDate         = DateTime.UtcNow.AddDays(7),
-            BillingDetails  = "Internal",
-            PaymentStatus   = "N/A",
-            CompanyId       = companyId,
-            CreatedByUserId = admin.Id,
-            CreatedAt       = DateTime.UtcNow,
-            CreatedBy       = admin.Id
-        }
-    );
+            Username     = "srmanager",
+            PasswordHash = demoPassword,
+            Name         = "Priya Mehta",
+            Email        = "priya.mehta@teampulse.local",
+            Role         = "senior-manager",
+            Department   = "Audit",
+            Phone        = "9876543211",
+            PhotoUrl     = "https://ui-avatars.com/api/?name=Priya+Mehta&background=C9A84C&color=fff",
+            CompanyId    = companyId,
+            CreatedAt    = DateTime.UtcNow,
+            CreatedBy    = "system"
+        });
+    }
+    else { existingManager.PasswordHash = demoPassword; existingManager.IsDeleted = false; }
+
+    var existingTrainee = await db.Users.IgnoreQueryFilters()
+        .FirstOrDefaultAsync(u => u.CompanyId == companyId && u.Username == "trainee");
+    if (existingTrainee is null)
+    {
+        db.Users.Add(new User
+        {
+            Username     = "trainee",
+            PasswordHash = demoPassword,
+            Name         = "Ravi Kumar",
+            Email        = "ravi.kumar@teampulse.local",
+            Role         = "trainee",
+            Department   = "Audit",
+            Phone        = "9876543212",
+            PhotoUrl     = "https://ui-avatars.com/api/?name=Ravi+Kumar&background=10b981&color=fff",
+            CompanyId    = companyId,
+            CreatedAt    = DateTime.UtcNow,
+            CreatedBy    = "system"
+        });
+    }
+    else { existingTrainee.PasswordHash = demoPassword; existingTrainee.IsDeleted = false; }
 
     await db.SaveChangesAsync();
+
+    // Seed demo tasks only if none exist for this tenant
+    var adminUser    = await db.Users.IgnoreQueryFilters().FirstAsync(u => u.CompanyId == companyId && u.Username == "admin");
+    var managerUser  = await db.Users.IgnoreQueryFilters().FirstAsync(u => u.CompanyId == companyId && u.Username == "srmanager");
+    var traineeUser  = await db.Users.IgnoreQueryFilters().FirstAsync(u => u.CompanyId == companyId && u.Username == "trainee");
+
+    if (!db.Tasks.Any(t => t.CompanyId == companyId))
+    {
+        db.Tasks.AddRange(
+            new TaskItem
+            {
+                Title           = "GST Return Filing",
+                Description     = "File GST returns for Q1 prime clients.",
+                AssigneeId      = managerUser.Id,
+                Priority        = "Urgent",
+                Status          = "new",
+                DueDate         = DateTime.UtcNow.AddDays(3),
+                ClientContact   = "Vikas Shah / 9812345678",
+                BillingDetails  = "₹350",
+                PaymentStatus   = "Pending",
+                Remarks         = "Urgent compliance",
+                CompanyId       = companyId,
+                CreatedByUserId = adminUser.Id,
+                CreatedAt       = DateTime.UtcNow,
+                CreatedBy       = adminUser.Id
+            },
+            new TaskItem
+            {
+                Title           = "Onboarding Documentation",
+                Description     = "Update trainee onboarding materials for new joiners.",
+                AssigneeId      = traineeUser.Id,
+                Priority        = "Medium",
+                Status          = "in-progress",
+                DueDate         = DateTime.UtcNow.AddDays(7),
+                BillingDetails  = "Internal",
+                PaymentStatus   = "N/A",
+                CompanyId       = companyId,
+                CreatedByUserId = adminUser.Id,
+                CreatedAt       = DateTime.UtcNow,
+                CreatedBy       = adminUser.Id
+            }
+        );
+        await db.SaveChangesAsync();
+    }
 }
