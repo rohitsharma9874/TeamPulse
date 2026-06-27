@@ -1,9 +1,11 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using TeamPulse.Application.DTOs.Task;
 using TeamPulse.Application.Interfaces;
 using TeamPulse.Domain.Entities;
+using TeamPulse.Infrastructure.Data;
 
 namespace TeamPulse.Api.Controllers
 {
@@ -13,15 +15,27 @@ namespace TeamPulse.Api.Controllers
     public class TaskController : ControllerBase
     {
         private readonly ITaskRepository _taskRepo;
+        private readonly TeamPulseDbContext _db;
 
+        // Roles that can see all tasks across the company
         private static readonly HashSet<string> AllTaskRoles = new(StringComparer.OrdinalIgnoreCase)
         {
             "owner", "admin", "sub-admin",
             "senior-manager", "managing-partner", "partner",
-            "manager", "audit-manager", "tax-manager", "compliance-manager"
         };
 
-        private static readonly HashSet<string> WriteTaskRoles = AllTaskRoles;
+        // Roles that can see all tasks in their own department
+        private static readonly HashSet<string> ManagerRoles = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "manager", "audit-manager", "tax-manager", "compliance-manager",
+        };
+
+        private static readonly HashSet<string> WriteTaskRoles = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "owner", "admin", "sub-admin",
+            "senior-manager", "managing-partner", "partner",
+            "manager", "audit-manager", "tax-manager", "compliance-manager",
+        };
 
         private static readonly HashSet<string> DeleteTaskRoles = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -29,7 +43,11 @@ namespace TeamPulse.Api.Controllers
             "senior-manager", "managing-partner", "partner"
         };
 
-        public TaskController(ITaskRepository taskRepo) => _taskRepo = taskRepo;
+        public TaskController(ITaskRepository taskRepo, TeamPulseDbContext db)
+        {
+            _taskRepo = taskRepo;
+            _db       = db;
+        }
 
         private string CurrentUserId     => User.FindFirstValue(ClaimTypes.NameIdentifier)
                                          ?? User.FindFirstValue("sub") ?? string.Empty;
@@ -41,11 +59,29 @@ namespace TeamPulse.Api.Controllers
         {
             var tasks = await _taskRepo.GetByCompanyAsync(CurrentCompanyId);
 
-            // Associates/Staff (tier 4–5) only see tasks assigned to or created by them
-            if (!AllTaskRoles.Contains(CurrentUserRole))
+            if (ManagerRoles.Contains(CurrentUserRole))
+            {
+                // Managers see tasks assigned to anyone in their department
+                var me = await _db.Users.AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == CurrentUserId);
+                if (me?.Department is not null)
+                {
+                    var deptIds = (await _db.Users.AsNoTracking()
+                        .Where(u => u.Department == me.Department)
+                        .Select(u => u.Id)
+                        .ToListAsync())
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                    tasks = tasks.Where(t => deptIds.Contains(t.AssigneeId)).ToList();
+                }
+            }
+            else if (!AllTaskRoles.Contains(CurrentUserRole))
+            {
+                // Associates/staff only see tasks assigned to or created by them
                 tasks = tasks.Where(t =>
                     t.AssigneeId == CurrentUserId ||
                     t.CreatedByUserId == CurrentUserId).ToList();
+            }
 
             return Ok(tasks.Select(ToDto));
         }
@@ -70,6 +106,21 @@ namespace TeamPulse.Api.Controllers
 
             await _taskRepo.AddAsync(task);
             await _taskRepo.SaveChangesAsync();
+
+            // Notify the assignee if they are not the one creating the task
+            if (!string.IsNullOrEmpty(task.AssigneeId) && task.AssigneeId != CurrentUserId)
+            {
+                _db.Notifications.Add(new Notification
+                {
+                    UserId    = task.AssigneeId,
+                    CompanyId = task.CompanyId,
+                    Type      = "task_assigned",
+                    Message   = $"You've been assigned \"{task.Title}\"",
+                    TaskId    = task.Id,
+                });
+                await _db.SaveChangesAsync();
+            }
+
             return CreatedAtAction(nameof(GetTask), new { id = task.Id }, ToDto(task));
         }
 
@@ -81,6 +132,8 @@ namespace TeamPulse.Api.Controllers
 
             var task = await _taskRepo.GetByIdAsync(id);
             if (task is null) return NotFound();
+
+            var previousAssigneeId = task.AssigneeId;
 
             task.Title         = request.Title         ?? task.Title;
             task.Description   = request.Description   ?? task.Description;
@@ -101,6 +154,23 @@ namespace TeamPulse.Api.Controllers
 
             await _taskRepo.UpdateAsync(task);
             await _taskRepo.SaveChangesAsync();
+
+            // Notify the new assignee if they changed and the current user is not the new assignee
+            if (!string.IsNullOrEmpty(task.AssigneeId)
+                && task.AssigneeId != previousAssigneeId
+                && task.AssigneeId != CurrentUserId)
+            {
+                _db.Notifications.Add(new Notification
+                {
+                    UserId    = task.AssigneeId,
+                    CompanyId = task.CompanyId,
+                    Type      = "task_assigned",
+                    Message   = $"You've been assigned \"{task.Title}\"",
+                    TaskId    = task.Id,
+                });
+                await _db.SaveChangesAsync();
+            }
+
             return Ok(ToDto(task));
         }
 

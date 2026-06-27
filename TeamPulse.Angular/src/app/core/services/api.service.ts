@@ -23,6 +23,7 @@ export interface CreateTenantRequest {
   adminEmail: string;
 }
 import { User, CreateUserRequest, UpdateProfileRequest } from '../models/user.model';
+import { AppNotification } from '../models/notification.model';
 import { Task, TaskRequest } from '../models/task.model';
 import { TaskDocument } from '../models/task-document.model';
 import { MemberDocument } from '../models/member-document.model';
@@ -153,6 +154,19 @@ export class ApiService {
 
   toggleTenant(id: string): Observable<{ id: string; isActive: boolean }> {
     return this.http.patch<{ id: string; isActive: boolean }>(`${this.base}/tenant/${id}/toggle`, {});
+  }
+
+  // Notifications
+  getNotifications(): Observable<AppNotification[]> {
+    return this.http.get<AppNotification[]>(`${this.base}/notification`);
+  }
+
+  markNotificationRead(id: string): Observable<void> {
+    return this.http.patch<void>(`${this.base}/notification/${id}/read`, {});
+  }
+
+  markAllNotificationsRead(): Observable<void> {
+    return this.http.patch<void>(`${this.base}/notification/read-all`, {});
   }
 
   // Password reset

@@ -9,6 +9,8 @@ import { ApiService } from '../../core/services/api.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { InactivityService } from '../../core/services/inactivity.service';
 import { TenantService } from '../../core/services/tenant.service';
+import { NotificationService } from '../../core/services/notification.service';
+import { AppNotification } from '../../core/models/notification.model';
 import { PermissionService, AppPermissions, getRoleTier } from '../../core/services/permission.service';
 import { User, CreateUserRequest, UpdateProfileRequest, ROLE_LABELS, ROLE_HIERARCHY } from '../../core/models/user.model';
 import { Task, TaskRequest, PRIORITY_ORDER } from '../../core/models/task.model';
@@ -130,6 +132,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
   taskDateFrom = '';
   taskDateTo = '';
 
+  // Task list pagination
+  taskPage = 0;
+  readonly taskPageSize = 20;
+
+  // Team directory pagination
+  teamPage = 0;
+  readonly teamPageSize = 24;
+
   // Activity pagination
   activityPage = 0;
   readonly activityPageSize = 15;
@@ -218,6 +228,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private inactivity: InactivityService,
     private cdr: ChangeDetectorRef,
     public tenantService: TenantService,
+    public notifService: NotificationService,
   ) {}
 
   ngOnInit(): void {
@@ -234,6 +245,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (savedPerfTab) this.perfTab = savedPerfTab;
     this.startClock();
     this.loadAll();
+    this.notifService.start();
     this.inactivity.start();
     this.inactivitySubs = [
       this.inactivity.showWarning$.subscribe(v => this.showInactivityWarning = v),
@@ -244,6 +256,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     clearInterval(this.clockTimer);
     this.destroyAllCharts();
+    this.notifService.stop();
     this.inactivity.stop();
     this.inactivitySubs.forEach(s => s.unsubscribe());
   }
@@ -382,6 +395,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   closeNotif(): void { this.notifOpen = false; }
 
+  get notifTotalCount(): number {
+    return this.notifService.unreadCount + (this.perms.canViewAlerts ? this.alertsCount : 0);
+  }
+
+  onNotifClick(n: AppNotification): void {
+    if (!n.isRead) this.notifService.markRead(n.id);
+    if (n.taskId) { this.navigate('tasks'); this.setTasksTab('list'); }
+    this.closeNotif();
+  }
+
+  notifMarkAll(): void { this.notifService.markAllRead(); }
+
   // ── Task arrays — all backed by recompute() cache ─────────
   get visibleTasks():     Task[] { return this._visibleTasks; }
   get newTasks():         Task[] { return this._newTasks; }
@@ -412,7 +437,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  clearDateFilter(): void { this.taskDateFrom = ''; this.taskDateTo = ''; }
+  clearDateFilter(): void { this.taskDateFrom = ''; this.taskDateTo = ''; this.taskPage = 0; }
+
+  // Paginated task slice (clamps page index when filters shrink results)
+  get pagedTasks(): Task[] {
+    const filtered = this.filteredTasks;
+    const maxPage  = Math.max(0, Math.ceil(filtered.length / this.taskPageSize) - 1);
+    if (this.taskPage > maxPage) this.taskPage = maxPage;
+    return filtered.slice(this.taskPage * this.taskPageSize, (this.taskPage + 1) * this.taskPageSize);
+  }
+  get taskPageCount(): number { return Math.max(1, Math.ceil(this.filteredTasks.length / this.taskPageSize)); }
+  prevTaskPage(): void { if (this.taskPage > 0) this.taskPage--; }
+  nextTaskPage(): void { if (this.taskPage < this.taskPageCount - 1) this.taskPage++; }
+  resetTaskPage(): void { this.taskPage = 0; }
 
   /** Month/range filter applied to _visibleTasks — used for stage count cards (no stage filter) */
   get filteredCountTasks(): Task[] {
@@ -883,6 +920,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
       (u.designation ?? '').toLowerCase().includes(s)
     );
   }
+
+  // Paginated team slice (grid view only; clamps page when search shrinks results)
+  get pagedMembers(): User[] {
+    const filtered = this.filteredMembers;
+    const maxPage  = Math.max(0, Math.ceil(filtered.length / this.teamPageSize) - 1);
+    if (this.teamPage > maxPage) this.teamPage = maxPage;
+    return filtered.slice(this.teamPage * this.teamPageSize, (this.teamPage + 1) * this.teamPageSize);
+  }
+  get teamPageCount(): number { return Math.max(1, Math.ceil(this.filteredMembers.length / this.teamPageSize)); }
+  prevTeamPage(): void { if (this.teamPage > 0) this.teamPage--; }
+  nextTeamPage(): void { if (this.teamPage < this.teamPageCount - 1) this.teamPage++; }
+  resetTeamPage(): void { this.teamPage = 0; }
 
   // Build a flat list with depth + tree-line metadata for the visual tree view
   get hierarchyList(): { user: User; depth: number; isLast: boolean; parentContinues: boolean[] }[] {

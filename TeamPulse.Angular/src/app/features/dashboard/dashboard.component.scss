@@ -1686,6 +1686,24 @@
   color: #1f2937;
 }
 
+.notif-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notif-mark-all {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #1B3A6B;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  &:hover { background: #eff6ff; }
+}
+
 .notif-close {
   background: none;
   border: none;
@@ -1716,20 +1734,55 @@
   border-radius: 7px;
   font-size: 0.78rem;
   line-height: 1.4;
+  cursor: pointer;
+  transition: background 0.12s;
 
-  &.notif-critical { background: #fef2f2; color: #7f1d1d; }
-  &.notif-warn     { background: #fffbeb; color: #78350f; }
+  &:hover            { background: #f8fafc; }
+  &.notif-unread     { background: #eff6ff; }
+  &.notif-critical   { background: #fef2f2; color: #7f1d1d; cursor: default; }
+  &.notif-warn       { background: #fffbeb; color: #78350f; cursor: default; }
 }
 
-.notif-badge-dot {
+.notif-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-msg {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.notif-time {
+  margin: 0.2rem 0 0;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.notif-type-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
-  margin-top: 3px;
+  margin-top: 4px;
 
-  &.critical { background: #dc2626; }
-  &.warn      { background: #d97706; }
+  &.dot-assigned  { background: #1B3A6B; }
+  &.dot-deadline  { background: #f59e0b; }
+  &.dot-critical  { background: #dc2626; }
+  &.dot-warn      { background: #d97706; }
+}
+
+.notif-section-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding: 0.5rem 0.625rem 0.25rem;
+  margin-top: 0.25rem;
+  border-top: 1px solid var(--border);
 }
 
 .notif-empty {
@@ -2502,6 +2555,116 @@
   .sidebar { width: 260px; }
   .main    { padding: 1.75rem 2.25rem; }
   .stat-grid-work, .stat-grid-overview { grid-template-columns: repeat(4, 1fr); }
+}
+
+// ── Mobile responsiveness ─────────────────────────────────
+
+@media (max-width: 768px) {
+  // Sidebar: hidden by default, slides in over content
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 300;
+    width: 260px;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.18);
+
+    &.sidebar-open { transform: translateX(0); }
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  // Main wrap takes full width when sidebar is hidden
+  .main-wrap { margin-left: 0 !important; width: 100%; }
+
+  // Topbar
+  .topbar {
+    padding: 0 0.75rem;
+    .topbar-title { font-size: 1rem; }
+    .topbar-sub   { display: none; }
+    .clock-chip   { display: none; }
+  }
+
+  // Stats grid: 2 columns on tablet
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem;
+  }
+
+  // Charts: stack vertically
+  .charts-row, .charts-grid {
+    flex-direction: column !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  // Task table: enable horizontal scroll
+  .task-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  // Team directory: single column cards
+  .team-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  // Performance table: scrollable
+  .perf-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  // Deadlines two-column → single
+  .deadlines-cols {
+    flex-direction: column !important;
+    gap: 1rem;
+  }
+
+  // Notification dropdown: full width
+  .notif-dropdown {
+    width: calc(100vw - 1.5rem);
+    right: -0.5rem;
+  }
+
+  // Board columns: horizontal scroll
+  .kanban-board {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.5rem;
+  }
+
+  // Overview section sub-tabs: wrap
+  .tab-bar { flex-wrap: wrap; gap: 0.3rem; }
+}
+
+@media (max-width: 480px) {
+  // Stats: single column on small phones
+  .stat-grid { grid-template-columns: 1fr !important; }
+
+  // Topbar: tighter spacing
+  .topbar {
+    padding: 0 0.5rem;
+    height: 52px;
+    gap: 0.5rem;
+    .topbar-title { font-size: 0.875rem; }
+    .btn-theme { width: 30px; height: 30px; font-size: 0.85rem; }
+    .notif-bell { width: 30px; height: 30px; font-size: 0.85rem; }
+  }
+
+  // Cards take full width
+  .member-card, .stat-card { width: 100%; }
+
+  // Section content: tighter padding
+  .section-content { padding: 0.75rem; }
+
+  // Slide-over panels (user/task modals): full screen
+  .modal-panel {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
 }
 
 // ── Badge status — all stage names (new + legacy) ─────────

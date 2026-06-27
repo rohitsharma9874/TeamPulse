@@ -18,6 +18,7 @@ namespace TeamPulse.Infrastructure.Data
         public DbSet<Tenant> Tenants { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<TaskItem> Tasks { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<TaskDocument> TaskDocuments { get; set; }
         public DbSet<MemberDocument> MemberDocuments { get; set; }
@@ -47,6 +48,9 @@ namespace TeamPulse.Infrastructure.Data
 
             modelBuilder.Entity<PaymentTransaction>().HasQueryFilter(p =>
                 !p.IsDeleted && (_tenantContext.TenantId == null || p.CompanyId == _tenantContext.TenantId));
+
+            modelBuilder.Entity<Notification>().HasQueryFilter(n =>
+                _tenantContext.TenantId == null || n.CompanyId == _tenantContext.TenantId);
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

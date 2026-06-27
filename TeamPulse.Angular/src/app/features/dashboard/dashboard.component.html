@@ -113,25 +113,47 @@
           {{ isDark ? '☀️' : '🌙' }}
         </button>
 
-        <!-- Notification bell (moved from sidebar) -->
-        <div class="notif-wrapper" *ngIf="perms.canViewAlerts">
+        <!-- Unified notification bell -->
+        <div class="notif-wrapper">
           <button class="notif-bell" (click)="toggleNotif()" [class.notif-active]="notifOpen" title="Notifications">
             🔔
-            <span class="notif-dot" *ngIf="alertsCount > 0">{{ alertsCount }}</span>
+            <span class="notif-dot" *ngIf="notifTotalCount > 0">{{ notifTotalCount > 99 ? '99+' : notifTotalCount }}</span>
           </button>
-          <div class="notif-dropdown" *ngIf="notifOpen">
+          <div class="notif-dropdown" *ngIf="notifOpen" (click)="$event.stopPropagation()">
             <div class="notif-header">
-              <span>Alerts</span>
-              <button class="notif-close" (click)="closeNotif()">✕</button>
+              <span>Notifications</span>
+              <div class="notif-header-actions">
+                <button class="notif-mark-all" *ngIf="notifService.unreadCount > 0" (click)="notifMarkAll()">Mark all read</button>
+                <button class="notif-close" (click)="closeNotif()">✕</button>
+              </div>
             </div>
             <div class="notif-list">
-              <div class="notif-item notif-critical" *ngFor="let a of cachedCriticalAlerts">
-                <span class="notif-badge-dot critical"></span>{{ a }}
+              <!-- Personal notifications -->
+              <div *ngFor="let n of notifService.notifications"
+                   class="notif-item"
+                   [class.notif-unread]="!n.isRead"
+                   [class.notif-assigned]="n.type === 'task_assigned'"
+                   [class.notif-deadline]="n.type === 'deadline_approaching'"
+                   (click)="onNotifClick(n)">
+                <span class="notif-type-dot" [class.dot-assigned]="n.type === 'task_assigned'" [class.dot-deadline]="n.type === 'deadline_approaching'"></span>
+                <div class="notif-content">
+                  <p class="notif-msg">{{ n.message }}</p>
+                  <p class="notif-time">{{ n.createdAt | date:'dd MMM, h:mm a' }}</p>
+                </div>
               </div>
-              <div class="notif-item notif-warn" *ngFor="let a of cachedWarningAlerts">
-                <span class="notif-badge-dot warn"></span>{{ a }}
-              </div>
-              <p class="notif-empty" *ngIf="alertsCount === 0">All clear — no alerts</p>
+              <!-- Team alerts (admins / managers only) -->
+              <ng-container *ngIf="perms.canViewAlerts && alertsCount > 0">
+                <div class="notif-section-label" *ngIf="notifService.notifications.length > 0">Team Alerts</div>
+                <div class="notif-item notif-critical" *ngFor="let a of cachedCriticalAlerts">
+                  <span class="notif-type-dot dot-critical"></span>
+                  <div class="notif-content"><p class="notif-msg">{{ a }}</p></div>
+                </div>
+                <div class="notif-item notif-warn" *ngFor="let a of cachedWarningAlerts">
+                  <span class="notif-type-dot dot-warn"></span>
+                  <div class="notif-content"><p class="notif-msg">{{ a }}</p></div>
+                </div>
+              </ng-container>
+              <p class="notif-empty" *ngIf="notifTotalCount === 0">No new notifications</p>
             </div>
           </div>
         </div>
@@ -801,7 +823,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let task of filteredTasks; trackBy: trackById" [class.overdue-row]="isOverdue(task)">
+                <tr *ngFor="let task of pagedTasks; trackBy: trackById" [class.overdue-row]="isOverdue(task)">
                   <td class="task-title">{{ task.title }}</td>
                   <td>{{ getUserName(task.assignee) }}</td>
                   <td><span class="badge badge-priority" [attr.data-priority]="task.priority">{{ task.priority }}</span></td>
@@ -825,6 +847,11 @@
           <p class="filter-count" *ngIf="taskSearch || taskStatusFilter || taskPriorityFilter || taskDateFrom || taskDateTo">
             Showing {{ filteredTasks.length }} of {{ visibleTasks.length }} tasks
           </p>
+          <div class="pagination-controls" *ngIf="taskPageCount > 1">
+            <button class="btn-page" (click)="prevTaskPage()" [disabled]="taskPage === 0">← Prev</button>
+            <span class="page-indicator">{{ taskPage + 1 }} / {{ taskPageCount }}</span>
+            <button class="btn-page" (click)="nextTaskPage()" [disabled]="taskPage >= taskPageCount - 1">Next →</button>
+          </div>
         </ng-container>
 
         <!-- ── Board tab ──────────────────────────────────── -->
@@ -1174,7 +1201,7 @@
 
         <!-- ── Grid / All Members view ───────────────────── -->
         <div class="member-grid" *ngIf="teamView === 'grid'">
-          <div class="member-card" *ngFor="let u of filteredMembers"
+          <div class="member-card" *ngFor="let u of pagedMembers"
             [class.member-card-me]="u.id === currentUser?.id"
             (click)="openMemberDetail(u)">
             <div class="member-card-top">
@@ -1203,6 +1230,11 @@
             </div>
           </div>
           <p class="empty" *ngIf="filteredMembers.length === 0">No members match your search.</p>
+          <div class="pagination-controls" *ngIf="teamPageCount > 1">
+            <button class="btn-page" (click)="prevTeamPage()" [disabled]="teamPage === 0">← Prev</button>
+            <span class="page-indicator">{{ teamPage + 1 }} / {{ teamPageCount }} &nbsp;·&nbsp; {{ filteredMembers.length }} members</span>
+            <button class="btn-page" (click)="nextTeamPage()" [disabled]="teamPage >= teamPageCount - 1">Next →</button>
+          </div>
         </div>
 
         <!-- ── Hierarchy — visual tree view ─────────────── -->
