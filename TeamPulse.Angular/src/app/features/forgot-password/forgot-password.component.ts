@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -21,7 +21,7 @@ export class ForgotPasswordComponent {
   sent     = false;
   errorMsg = '';
 
-  constructor(private fb: FormBuilder, private api: ApiService) {}
+  constructor(private fb: FormBuilder, private api: ApiService, private cdr: ChangeDetectorRef) {}
 
   submit(): void {
     if (this.form.invalid) return;
@@ -33,10 +33,12 @@ export class ForgotPasswordComponent {
       next: () => {
         this.loading = false;
         this.sent    = true;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.loading  = false;
         this.errorMsg = 'Something went wrong. Please try again.';
+        this.cdr.detectChanges();
       },
     });
   }

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from '@angular/forms';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
@@ -87,7 +87,7 @@ export class TaskModalComponent implements OnChanges {
     return this.users.filter(u => (ROLE_HIERARCHY[u.role] ?? 99) >= myRank);
   }
 
-  constructor(private fb: FormBuilder, private api: ApiService) {}
+  constructor(private fb: FormBuilder, private api: ApiService, private cdr: ChangeDetectorRef) {}
 
   ngOnChanges(): void {
     if (!this.visible) return;
@@ -120,8 +120,8 @@ export class TaskModalComponent implements OnChanges {
     if (!this.task?.id) return;
     this.loadingDocs = true;
     this.api.getAttachments(this.task.id).subscribe({
-      next: docs => { this.existingDocs = docs; this.loadingDocs = false; },
-      error: ()  => { this.loadingDocs = false; },
+      next: docs => { this.existingDocs = docs; this.loadingDocs = false; this.cdr.detectChanges(); },
+      error: ()  => { this.loadingDocs = false; this.cdr.detectChanges(); },
     });
   }
 
@@ -151,7 +151,7 @@ export class TaskModalComponent implements OnChanges {
 
   deleteExisting(doc: TaskDocument): void {
     this.api.deleteAttachment(doc.id).subscribe({
-      next: () => { this.existingDocs = this.existingDocs.filter(d => d.id !== doc.id); },
+      next: () => { this.existingDocs = this.existingDocs.filter(d => d.id !== doc.id); this.cdr.detectChanges(); },
     });
   }
 
@@ -186,8 +186,8 @@ export class TaskModalComponent implements OnChanges {
     if (!this.task?.id) return;
     this.loadingPayments = true;
     this.api.getPaymentTransactions(this.task.id).subscribe({
-      next: txns => { this.paymentHistory = txns; this.loadingPayments = false; },
-      error: ()   => { this.loadingPayments = false; },
+      next: txns => { this.paymentHistory = txns; this.loadingPayments = false; this.cdr.detectChanges(); },
+      error: ()   => { this.loadingPayments = false; this.cdr.detectChanges(); },
     });
   }
 
@@ -216,14 +216,15 @@ export class TaskModalComponent implements OnChanges {
         this.newPaymentDate   = '';
         this.showAddPayment   = false;
         this.savingPayment    = false;
+        this.cdr.detectChanges();
       },
-      error: () => { this.savingPayment = false; },
+      error: () => { this.savingPayment = false; this.cdr.detectChanges(); },
     });
   }
 
   deletePayment(txn: PaymentTransaction): void {
     this.api.deletePaymentTransaction(txn.id).subscribe({
-      next: () => { this.paymentHistory = this.paymentHistory.filter(t => t.id !== txn.id); },
+      next: () => { this.paymentHistory = this.paymentHistory.filter(t => t.id !== txn.id); this.cdr.detectChanges(); },
     });
   }
 

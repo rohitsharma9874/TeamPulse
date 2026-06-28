@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
@@ -54,6 +54,7 @@ export class ResetPasswordComponent implements OnInit {
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private api: ApiService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -69,10 +70,12 @@ export class ResetPasswordComponent implements OnInit {
       next: () => {
         this.loading = false;
         this.done    = true;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.loading  = false;
         this.errorMsg = err?.error?.message ?? 'This reset link is invalid or has expired.';
+        this.cdr.detectChanges();
       },
     });
   }

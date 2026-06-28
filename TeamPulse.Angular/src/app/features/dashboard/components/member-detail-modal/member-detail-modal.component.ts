@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { User, ROLE_LABELS } from '../../../../core/models/user.model';
 import { MemberDocument } from '../../../../core/models/member-document.model';
@@ -34,7 +34,7 @@ export class MemberDetailModalComponent implements OnChanges {
     { key: 'documents', label: 'Documents' },
   ];
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
 
   ngOnChanges(): void {
     if (this.visible && this.member) {
@@ -48,8 +48,8 @@ export class MemberDetailModalComponent implements OnChanges {
     if (!this.member?.id) return;
     this.loadingDocs = true;
     this.api.getMemberDocuments(this.member.id).subscribe({
-      next: docs => { this.docs = docs; this.loadingDocs = false; },
-      error: ()  => { this.loadingDocs = false; },
+      next: docs => { this.docs = docs; this.loadingDocs = false; this.cdr.detectChanges(); },
+      error: ()  => { this.loadingDocs = false; this.cdr.detectChanges(); },
     });
   }
 

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
@@ -62,7 +62,7 @@ export class UserModalComponent implements OnChanges {
   get isEdit(): boolean { return !!this.editingUser; }
   get modalTitle(): string { return this.isEdit ? 'Edit Member' : 'Add Team Member'; }
 
-  constructor(private fb: FormBuilder, private api: ApiService) {
+  constructor(private fb: FormBuilder, private api: ApiService, private cdr: ChangeDetectorRef) {
     this.buildForm();
   }
 
@@ -139,8 +139,8 @@ export class UserModalComponent implements OnChanges {
     if (!this.editingUser?.id) return;
     this.loadingDocs = true;
     this.api.getMemberDocuments(this.editingUser.id).subscribe({
-      next: docs => { this.existingDocs = docs; this.loadingDocs = false; },
-      error: ()  => { this.loadingDocs = false; },
+      next: docs => { this.existingDocs = docs; this.loadingDocs = false; this.cdr.detectChanges(); },
+      error: ()  => { this.loadingDocs = false; this.cdr.detectChanges(); },
     });
   }
 
@@ -195,7 +195,7 @@ export class UserModalComponent implements OnChanges {
 
   deleteExistingDoc(doc: MemberDocument): void {
     this.api.deleteMemberDocument(doc.id).subscribe({
-      next: () => { this.existingDocs = this.existingDocs.filter(d => d.id !== doc.id); },
+      next: () => { this.existingDocs = this.existingDocs.filter(d => d.id !== doc.id); this.cdr.detectChanges(); },
     });
   }
 
