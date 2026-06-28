@@ -76,16 +76,24 @@ namespace TeamPulse.Api.Controllers
                 await _userRepo.UpdateAsync(user);
                 await _userRepo.SaveChangesAsync();
 
-                // Send welcome email — non-blocking
+                // Send welcome email — truly fire-and-forget so SMTP never blocks the API response
                 if (!string.IsNullOrWhiteSpace(user.Email) && !user.Email.EndsWith("@teampulse.local"))
                 {
-                    try
+                    var capturedEmail    = user.Email;
+                    var capturedName     = user.Name;
+                    var capturedCompany  = CurrentUserCompanyId;
+                    var capturedUsername = user.Username;
+                    var capturedUserId   = user.Id;
+                    var appUrl           = _config["App:Url"] ?? "http://localhost:4200";
+                    _ = Task.Run(async () =>
                     {
-                        var appUrl = _config["App:Url"] ?? "http://localhost:4200";
-                        var link   = await _authService.CreateSetPasswordLinkAsync(user.Id, appUrl);
-                        await _emailService.SendWelcomeEmailAsync(user.Email, user.Name, CurrentUserCompanyId, user.Username, link);
-                    }
-                    catch { /* email failure is non-fatal */ }
+                        try
+                        {
+                            var link = await _authService.CreateSetPasswordLinkAsync(capturedUserId, appUrl);
+                            await _emailService.SendWelcomeEmailAsync(capturedEmail, capturedName, capturedCompany, capturedUsername, link);
+                        }
+                        catch { /* email failure must not affect the created user response */ }
+                    });
                 }
 
                 return CreatedAtAction(nameof(GetUsers), null, ToDto(user));

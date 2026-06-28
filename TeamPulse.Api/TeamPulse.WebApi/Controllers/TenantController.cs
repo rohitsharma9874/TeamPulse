@@ -109,16 +109,24 @@ namespace TeamPulse.Api.Controllers
                 return Conflict(new { message = "A user with that username or email already exists in this tenant." });
             }
 
-            // Send welcome email — non-blocking: failure does not roll back tenant creation
+            // Send welcome email — truly fire-and-forget so SMTP never blocks the API response
             if (!string.IsNullOrWhiteSpace(admin.Email) && !admin.Email.EndsWith("@teampulse.local"))
             {
-                try
+                var capturedEmail    = admin.Email;
+                var capturedName     = admin.Name;
+                var capturedTenantId = tenant.Id;
+                var capturedUsername = admin.Username;
+                var capturedUserId   = admin.Id;
+                var appUrl           = _config["App:Url"] ?? "http://localhost:4200";
+                _ = Task.Run(async () =>
                 {
-                    var appUrl = _config["App:Url"] ?? "http://localhost:4200";
-                    var link   = await _authService.CreateSetPasswordLinkAsync(admin.Id, appUrl);
-                    await _emailService.SendWelcomeEmailAsync(admin.Email, admin.Name, tenant.Id, admin.Username, link);
-                }
-                catch { /* email failure is non-fatal */ }
+                    try
+                    {
+                        var link = await _authService.CreateSetPasswordLinkAsync(capturedUserId, appUrl);
+                        await _emailService.SendWelcomeEmailAsync(capturedEmail, capturedName, capturedTenantId, capturedUsername, link);
+                    }
+                    catch { /* email failure must not affect the created tenant response */ }
+                });
             }
 
             return CreatedAtAction(nameof(GetAll), new { id = tenant.Id }, new

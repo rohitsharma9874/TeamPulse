@@ -992,15 +992,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.api.createUser(request).subscribe({
         next: (user) => {
           this.users = [...this.users, user];
-          this.recompute();
+          try { this.recompute(); } catch (e) { console.error('[Dashboard] recompute failed after adding user:', e); }
           (payload.files ?? []).forEach(p =>
             this.api.uploadMemberDocument(user.id, p.file, p.docType).subscribe()
           );
           this.api.logActivity({ entityType: 'User', entityId: user.id, action: 'Added Team Member', target: user.name }).subscribe();
           this.savingUser = false;
           this.closeUserModal();
+          this.cdr.detectChanges();
         },
-        error: () => { this.savingUser = false; },
+        error: () => { this.savingUser = false; this.cdr.detectChanges(); },
       });
     }
   }
