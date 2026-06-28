@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Mail;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using TeamPulse.Application.Interfaces;
 
 namespace TeamPulse.Infrastructure.Services
@@ -8,10 +9,12 @@ namespace TeamPulse.Infrastructure.Services
     public class SmtpEmailService : IEmailService
     {
         private readonly IConfiguration _config;
+        private readonly ILogger<SmtpEmailService> _logger;
 
-        public SmtpEmailService(IConfiguration config)
+        public SmtpEmailService(IConfiguration config, ILogger<SmtpEmailService> logger)
         {
             _config = config;
+            _logger = logger;
         }
 
         private bool IsConfigured =>
@@ -20,7 +23,7 @@ namespace TeamPulse.Infrastructure.Services
 
         public async Task SendPasswordResetEmailAsync(string toEmail, string toName, string resetLink)
         {
-            if (!IsConfigured) return;
+            if (!IsConfigured) { _logger.LogWarning("SMTP not configured — password reset email skipped for {Email}", toEmail); return; }
 
             var smtp    = _config["Smtp:Host"]     ?? "smtp.gmail.com";
             var port    = int.Parse(_config["Smtp:Port"] ?? "587");
@@ -63,12 +66,21 @@ namespace TeamPulse.Infrastructure.Services
             };
             message.To.Add(new MailAddress(toEmail, toName));
 
-            await client.SendMailAsync(message);
+            try
+            {
+                await client.SendMailAsync(message);
+                _logger.LogInformation("Password reset email sent to {Email}", toEmail);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send password reset email to {Email} via {Host}:{Port}", toEmail, smtp, port);
+                throw;
+            }
         }
 
         public async Task SendWelcomeEmailAsync(string toEmail, string toName, string companyCode, string username, string setPasswordLink)
         {
-            if (!IsConfigured) return;
+            if (!IsConfigured) { _logger.LogWarning("SMTP not configured — welcome email skipped for {Email}", toEmail); return; }
 
             var smtp     = _config["Smtp:Host"]     ?? "smtp.gmail.com";
             var port     = int.Parse(_config["Smtp:Port"] ?? "587");
@@ -126,7 +138,16 @@ namespace TeamPulse.Infrastructure.Services
             };
             message.To.Add(new MailAddress(toEmail, toName));
 
-            await client.SendMailAsync(message);
+            try
+            {
+                await client.SendMailAsync(message);
+                _logger.LogInformation("Welcome email sent to {Email}", toEmail);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send welcome email to {Email} via {Host}:{Port}", toEmail, smtp, port);
+                throw;
+            }
         }
     }
 }

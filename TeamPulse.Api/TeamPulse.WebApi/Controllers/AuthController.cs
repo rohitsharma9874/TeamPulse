@@ -53,7 +53,7 @@ namespace TeamPulse.Api.Controllers
         {
             // Always return 200 — do not expose whether the email or company code is valid
             var appUrl = _config["App:Url"] ?? "http://localhost:4200";
-            var resetBase = $"{appUrl}/reset-password";
+            var resetBase = $"{appUrl}/#/reset-password";
 
             var tenant = await _db.Tenants.FirstOrDefaultAsync(t => t.Id == request.TenantId && t.IsActive);
             if (tenant is not null)
