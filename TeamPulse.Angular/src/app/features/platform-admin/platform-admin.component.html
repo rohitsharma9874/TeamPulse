@@ -83,7 +83,8 @@
         <p class="pa-section-label">Company Details</p>
         <div class="field full">
           <label>Company Code <span class="hint">3–10 uppercase letters/digits, e.g. ABC001</span></label>
-          <input formControlName="id" type="text" placeholder="ABC001" style="text-transform:uppercase" />
+          <input formControlName="id" type="text" placeholder="ABC001" style="text-transform:uppercase"
+            (input)="createForm.get('id')!.setValue($any($event.target).value.toUpperCase(), {emitEvent:false})" />
         </div>
         <div class="field-row">
           <div class="field">

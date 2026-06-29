@@ -82,3 +82,9 @@ html, body {
 }
 
 a { color: inherit; text-decoration: none; }
+
+// When a date picker panel is open inside a modal, lift overflow so the
+// calendar renders fully without clipping or adding a scrollbar.
+// :has() reacts to the DOM directly — no Angular CD involvement, no NG0103.
+.modal:has(.dp__panel)      { overflow:   visible !important; }
+.modal-body:has(.dp__panel) { overflow-y: visible !important; }
