@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TeamPulse.Application.Interfaces;
@@ -19,7 +20,8 @@ namespace TeamPulse.Infrastructure
 
             services.AddDbContext<TeamPulseDbContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"),
-                    sql => sql.MigrationsAssembly("TeamPulse.Infrastructure")));
+                    sql => sql.MigrationsAssembly("TeamPulse.Infrastructure"))
+                       .ConfigureWarnings(w => w.Log(RelationalEventId.PendingModelChangesWarning)));
 
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<ITaskRepository, TaskRepository>();
