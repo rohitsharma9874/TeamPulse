@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from '@angular/forms';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
@@ -111,8 +111,8 @@ export class TaskModalComponent implements OnChanges {
 
   constructor(private fb: FormBuilder, private api: ApiService, private cdr: ChangeDetectorRef) {}
 
-  ngOnChanges(): void {
-    if (!this.visible) return;
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!changes['visible']?.currentValue) return;
     this.pendingFiles   = [];
     this.existingDocs   = [];
     this.paymentHistory = [];

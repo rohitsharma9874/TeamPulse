@@ -63,6 +63,10 @@ export class ApiService {
     return this.http.get<{ available: boolean }>(`${this.base}/user/check-username/${encodeURIComponent(username)}`);
   }
 
+  checkEmail(email: string): Observable<{ available: boolean }> {
+    return this.http.get<{ available: boolean }>(`${this.base}/user/check-email/${encodeURIComponent(email)}`);
+  }
+
   // Tasks
   getTasks(): Observable<Task[]> {
     return this.http.get<Task[]>(`${this.base}/task`);

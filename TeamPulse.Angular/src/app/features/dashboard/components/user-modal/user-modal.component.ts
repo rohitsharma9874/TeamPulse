@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, Output } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Subject, Subscription } from 'rxjs';
@@ -48,6 +48,11 @@ export class UserModalComponent implements OnChanges, OnDestroy {
   private usernameInput$ = new Subject<string>();
   private usernameSub?: Subscription;
 
+  // Email availability check
+  emailStatus: 'idle' | 'checking' | 'available' | 'taken' = 'idle';
+  private emailInput$ = new Subject<string>();
+  private emailSub?: Subscription;
+
   // Member documents (edit mode)
   existingDocs: MemberDocument[] = [];
   pendingFiles: { file: File; docType: string }[] = [];
@@ -95,10 +100,35 @@ export class UserModalComponent implements OnChanges, OnDestroy {
         this.cdr.detectChanges();
       },
     });
+
+    this.emailSub = this.emailInput$.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      switchMap(email => {
+        if (!email || !email.includes('@')) {
+          this.emailStatus = 'idle';
+          this.cdr.detectChanges();
+          return [];
+        }
+        this.emailStatus = 'checking';
+        this.cdr.detectChanges();
+        return this.api.checkEmail(email);
+      }),
+    ).subscribe({
+      next: (res: { available: boolean }) => {
+        this.emailStatus = res.available ? 'available' : 'taken';
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.emailStatus = 'idle';
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   ngOnDestroy(): void {
     this.usernameSub?.unsubscribe();
+    this.emailSub?.unsubscribe();
   }
 
   private buildForm(): void {
@@ -131,13 +161,14 @@ export class UserModalComponent implements OnChanges, OnDestroy {
     });
   }
 
-  ngOnChanges(): void {
-    if (!this.visible) return;
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!changes['visible']?.currentValue) return;
     this.activeTab = 'account';
     this.pendingFiles = [];
     this.existingDocs = [];
     this.docError = false;
     this.usernameStatus = 'idle';
+    this.emailStatus = 'idle';
 
     if (this.isEdit && this.editingUser) {
       const u = this.editingUser;
@@ -202,8 +233,16 @@ export class UserModalComponent implements OnChanges, OnDestroy {
     this.usernameInput$.next(val);
   }
 
-  get usernameBlocked(): boolean {
-    return !this.isEdit && (this.usernameStatus === 'checking' || this.usernameStatus === 'taken');
+  onEmailInput(event: Event): void {
+    if (this.isEdit) return;
+    const val = (event.target as HTMLInputElement).value.trim().toLowerCase();
+    this.emailInput$.next(val);
+  }
+
+  get submitBlocked(): boolean {
+    if (this.isEdit) return false;
+    return this.usernameStatus === 'checking' || this.usernameStatus === 'taken'
+        || this.emailStatus === 'checking' || this.emailStatus === 'taken';
   }
 
   getRoleLabel(role: string): string { return ROLE_LABELS[role] ?? role; }
@@ -293,7 +332,7 @@ export class UserModalComponent implements OnChanges, OnDestroy {
       this.docError = true;
       this.activeTab = 'documents';
     }
-    if (this.form.invalid || !hasDoc || this.usernameBlocked) return;
+    if (this.form.invalid || !hasDoc || this.submitBlocked) return;
     this.docError = false;
     const v = this.form.getRawValue();
 

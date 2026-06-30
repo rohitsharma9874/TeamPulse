@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UpdateProfileRequest, User } from '../../../../core/models/user.model';
@@ -55,8 +55,8 @@ export class ProfileModalComponent implements OnChanges {
     });
   }
 
-  ngOnChanges(): void {
-    if (!this.visible) return;
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!changes['visible']?.currentValue) return;
     this.activeTab   = 'personal';
     this.showPassword = false;
 

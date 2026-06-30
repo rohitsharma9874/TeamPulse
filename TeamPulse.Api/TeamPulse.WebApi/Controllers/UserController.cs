@@ -119,6 +119,16 @@ namespace TeamPulse.Api.Controllers
             return Ok(new { available });
         }
 
+        [HttpGet("check-email/{email}")]
+        public async Task<IActionResult> CheckEmail(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
+                return Ok(new { available = false });
+
+            var available = !await _userRepo.EmailExistsAsync(email.Trim().ToLowerInvariant());
+            return Ok(new { available });
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(string id)
         {
