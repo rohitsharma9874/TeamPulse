@@ -816,7 +816,9 @@
             <table class="task-table">
               <thead>
                 <tr>
+                  <th class="col-num">#</th>
                   <th>Title</th>
+                  <th>Customer</th>
                   <th>Assignee</th>
                   <th>Priority</th>
                   <th>Status</th>
@@ -827,23 +829,64 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let task of pagedTasks; trackBy: trackById" [class.overdue-row]="isOverdue(task)" (click)="openEditTask(task)" style="cursor:pointer">
-                  <td class="task-title">{{ task.title }}</td>
-                  <td>{{ getUserName(task.assignee) }}</td>
-                  <td><span class="badge badge-priority" [attr.data-priority]="task.priority">{{ task.priority }}</span></td>
-                  <td><span class="badge badge-status" [attr.data-status]="task.status">{{ task.status }}</span></td>
-                  <td [class.text-red]="isOverdue(task)">{{ task.deadline ? (task.deadline | date:'dd MMM yy') : '—' }}</td>
-                  <td *ngIf="perms.canViewBilling">{{ task.billing ?? '—' }}</td>
-                  <td *ngIf="perms.canViewBilling">
-                    <span class="badge badge-payment" [attr.data-pay]="task.paymentStatus">{{ task.paymentStatus ?? 'N/A' }}</span>
-                  </td>
-                  <td class="actions-cell" (click)="$event.stopPropagation()">
-                    <button class="btn-icon" *ngIf="perms.canEditTask" title="Edit" (click)="openEditTask(task)"><tp-icon name="edit" [size]="14"></tp-icon></button>
-                    <button class="btn-icon btn-icon-danger" *ngIf="perms.canDeleteTask" title="Delete" (click)="confirmDelete(task.id)"><tp-icon name="trash" [size]="14"></tp-icon></button>
-                  </td>
-                </tr>
+                <ng-container *ngFor="let task of pagedTasks; trackBy: trackById">
+                  <!-- Parent task row -->
+                  <tr [class.overdue-row]="isOverdue(task)" (click)="openEditTask(task)" style="cursor:pointer">
+                    <td class="task-num-cell"><span class="task-num-tag">#{{ task.number }}</span></td>
+                    <td class="task-title">
+                      <button *ngIf="task.subTaskCount > 0"
+                        class="expand-btn" [class.expanded]="isExpanded(task.id)"
+                        (click)="toggleSubtasks(task, $event)" title="Show subtasks">▶</button>
+                      {{ task.title }}
+                      <button *ngIf="perms.canEditTask" class="add-subtask-btn"
+                        (click)="openCreateSubTask(task, $event)" title="Add subtask">+ Subtask</button>
+                    </td>
+                    <td class="text-muted-sm">{{ task.customerName ?? '—' }}</td>
+                    <td>{{ getUserName(task.assignee) }}</td>
+                    <td><span class="badge badge-priority" [attr.data-priority]="task.priority">{{ task.priority }}</span></td>
+                    <td><span class="badge badge-status" [attr.data-status]="task.status">{{ task.status }}</span></td>
+                    <td [class.text-red]="isOverdue(task)">{{ task.deadline ? (task.deadline | date:'dd MMM yy') : '—' }}</td>
+                    <td *ngIf="perms.canViewBilling">{{ task.billing ?? '—' }}</td>
+                    <td *ngIf="perms.canViewBilling">
+                      <span class="badge badge-payment" [attr.data-pay]="task.paymentStatus">{{ task.paymentStatus ?? 'N/A' }}</span>
+                    </td>
+                    <td class="actions-cell" (click)="$event.stopPropagation()">
+                      <button class="btn-icon" *ngIf="perms.canEditTask" title="Edit" (click)="openEditTask(task)"><tp-icon name="edit" [size]="14"></tp-icon></button>
+                      <button class="btn-icon btn-icon-danger" *ngIf="perms.canDeleteTask" title="Delete" (click)="confirmDelete(task.id)"><tp-icon name="trash" [size]="14"></tp-icon></button>
+                    </td>
+                  </tr>
+
+                  <!-- Subtask loading row -->
+                  <tr *ngIf="isExpanded(task.id) && isLoadingSubtasks(task.id)" class="subtask-loading-row">
+                    <td [attr.colspan]="perms.canViewBilling ? 10 : 8">Loading subtasks…</td>
+                  </tr>
+
+                  <!-- Subtask rows (shown when expanded) -->
+                  <ng-container *ngIf="isExpanded(task.id) && !isLoadingSubtasks(task.id)">
+                    <tr *ngFor="let sub of getSubtasksFor(task.id); trackBy: trackById"
+                        class="subtask-row" [class.overdue-row]="isOverdue(sub)"
+                        (click)="openEditTask(sub)" style="cursor:pointer">
+                      <td class="task-num-cell"><span class="task-num-tag">#{{ sub.number }}</span></td>
+                      <td class="task-title">↳ {{ sub.title }}</td>
+                      <td class="text-muted-sm">{{ sub.customerName ?? '—' }}</td>
+                      <td>{{ getUserName(sub.assignee) }}</td>
+                      <td><span class="badge badge-priority" [attr.data-priority]="sub.priority">{{ sub.priority }}</span></td>
+                      <td><span class="badge badge-status" [attr.data-status]="sub.status">{{ sub.status }}</span></td>
+                      <td [class.text-red]="isOverdue(sub)">{{ sub.deadline ? (sub.deadline | date:'dd MMM yy') : '—' }}</td>
+                      <td *ngIf="perms.canViewBilling">{{ sub.billing ?? '—' }}</td>
+                      <td *ngIf="perms.canViewBilling">
+                        <span class="badge badge-payment" [attr.data-pay]="sub.paymentStatus">{{ sub.paymentStatus ?? 'N/A' }}</span>
+                      </td>
+                      <td class="actions-cell" (click)="$event.stopPropagation()">
+                        <button class="btn-icon" *ngIf="perms.canEditTask" title="Edit" (click)="openEditTask(sub)"><tp-icon name="edit" [size]="14"></tp-icon></button>
+                        <button class="btn-icon btn-icon-danger" *ngIf="perms.canDeleteTask" title="Delete" (click)="confirmDelete(sub.id)"><tp-icon name="trash" [size]="14"></tp-icon></button>
+                      </td>
+                    </tr>
+                  </ng-container>
+                </ng-container>
+
                 <tr *ngIf="filteredTasks.length === 0">
-                  <td [attr.colspan]="perms.canViewBilling ? 8 : 6" class="empty">No tasks match the current filters</td>
+                  <td [attr.colspan]="perms.canViewBilling ? 10 : 8" class="empty">No tasks match the current filters</td>
                 </tr>
               </tbody>
             </table>
@@ -924,18 +967,18 @@
             <button class="chip-clear-all" *ngIf="(boardHasFilter) && boardStageFilter" (click)="clearBoardFilter(); boardStageFilter = null">Clear all</button>
           </div>
 
-          <app-kanban
+          <app-task-board
             [tasks]="filteredBoardTasks"
             [users]="users"
             [canEdit]="perms.canEditTask"
             [canDelete]="perms.canDeleteTask"
-            [visibleStatuses]="visibleKanbanStatuses"
+            [visibleStatuses]="visibleBoardStatuses"
             (viewTask)="openEditTask($event)"
             (editTask)="openEditTask($event)"
             (deleteTask)="confirmDelete($event)"
             (moveTask)="onKanbanMove($event)"
             (addToColumn)="openCreateTaskInColumn($event)">
-          </app-kanban>
+          </app-task-board>
         </ng-container>
 
         <!-- ── Workflow Guide tab ─────────────────────────── -->
@@ -1284,6 +1327,91 @@
         </div>
       </section>
 
+      <!-- ── Clients ─────────────────────────────────────── -->
+      <section *ngIf="activeSection === 'clients'" class="section">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Clients</h2>
+            <p class="section-sub">Customer directory — {{ customers.length }} total</p>
+          </div>
+          <div class="section-actions">
+            <button class="btn-outline import-btn" (click)="downloadCustomerTemplate()" title="Download sample Excel template">
+              <tp-icon name="download" [size]="15"></tp-icon> Sample Template
+            </button>
+            <label class="btn-outline import-btn" title="Import from Excel">
+              <tp-icon name="upload-cloud" [size]="15"></tp-icon>
+              {{ importingCustomers ? 'Importing…' : 'Import Excel' }}
+              <input type="file" accept=".xlsx,.xls" hidden (change)="onCustomerImport($event)" [disabled]="importingCustomers" />
+            </label>
+            <button class="btn-primary" (click)="openCreateCustomer()">+ Add Client</button>
+          </div>
+        </div>
+
+        <!-- Import result banner -->
+        <div class="import-result" *ngIf="importResult">
+          <span class="import-ok">✓ {{ importResult.imported }} imported</span>
+          <span class="import-skip" *ngIf="importResult.skipped > 0">, {{ importResult.skipped }} skipped</span>
+          <ul class="import-errors" *ngIf="importResult.errors.length > 0">
+            <li *ngFor="let e of importResult.errors">{{ e }}</li>
+          </ul>
+          <button class="import-dismiss" (click)="importResult = null">×</button>
+        </div>
+
+        <!-- Search -->
+        <div class="filter-bar">
+          <div class="search-wrap">
+            <tp-icon name="search" [size]="15" class="search-icon"></tp-icon>
+            <input type="text" class="search-input" placeholder="Search by name, email or phone…"
+              [(ngModel)]="customerSearch" (ngModelChange)="customerPage = 0" />
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="task-table-wrap">
+          <table class="task-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th>Notes</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of filteredCustomers" [class.inactive-row]="!c.isActive">
+                <td class="task-title">{{ c.name }}</td>
+                <td class="text-muted">{{ c.email || '—' }}</td>
+                <td class="text-muted">{{ c.phone || '—' }}</td>
+                <td class="text-muted client-address">{{ c.address || '—' }}</td>
+                <td class="text-muted client-notes">{{ c.notes || '—' }}</td>
+                <td>
+                  <span class="badge" [attr.data-active]="c.isActive">
+                    {{ c.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+                <td class="actions-cell">
+                  <button class="btn-icon" title="Edit" (click)="openEditCustomer(c)"><tp-icon name="edit" [size]="14"></tp-icon></button>
+                  <button class="btn-icon btn-icon-danger" title="Delete" (click)="deleteCustomer(c.id)"><tp-icon name="trash" [size]="14"></tp-icon></button>
+                </td>
+              </tr>
+              <tr *ngIf="filteredCustomers.length === 0">
+                <td colspan="7" class="empty">No clients found.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" *ngIf="customerTotalPages > 1">
+          <button [disabled]="customerPage === 0" (click)="customerPage = customerPage - 1">‹ Prev</button>
+          <span>{{ customerPage + 1 }} / {{ customerTotalPages }}</span>
+          <button [disabled]="customerPage >= customerTotalPages - 1" (click)="customerPage = customerPage + 1">Next ›</button>
+        </div>
+      </section>
+
     </main>
   </div>
 </div>
@@ -1293,9 +1421,12 @@
   [visible]="taskModalVisible"
   [task]="editingTask"
   [users]="users"
+  [customers]="customers"
+  [allTasks]="tasks"
   [currentUserRole]="currentUser?.role ?? ''"
   [saving]="savingTask"
   [defaultDeadline]="defaultTaskDeadline"
+  [defaultParentTaskId]="defaultSubTaskParentId"
   (save)="onSaveTask($event)"
   (cancel)="closeTaskModal()">
 </app-task-modal>
@@ -1320,6 +1451,46 @@
   </div>
 </div>
 
+<!-- ── Add / Edit Customer Modal ──────────────────────── -->
+<div class="modal-backdrop" *ngIf="showCustomerModal" (click)="closeCustomerModal()"></div>
+<div class="modal" *ngIf="showCustomerModal" role="dialog" aria-modal="true">
+  <div class="modal-header">
+    <h2>{{ editingCustomer ? 'Edit Client' : 'Add Client' }}</h2>
+    <button class="btn-close" (click)="closeCustomerModal()" aria-label="Close">&times;</button>
+  </div>
+  <div class="modal-body">
+    <p class="modal-error" *ngIf="customerError">{{ customerError }}</p>
+    <div class="field full">
+      <label>Name <span class="req">*</span></label>
+      <input type="text" [(ngModel)]="customerForm.name" placeholder="Client / Company name" />
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" [(ngModel)]="customerForm.email" placeholder="contact@example.com" />
+      </div>
+      <div class="field">
+        <label>Phone</label>
+        <input type="text" [(ngModel)]="customerForm.phone" placeholder="+91 98765 43210" />
+      </div>
+    </div>
+    <div class="field full">
+      <label>Address</label>
+      <input type="text" [(ngModel)]="customerForm.address" placeholder="Street, City, State" />
+    </div>
+    <div class="field full">
+      <label>Notes</label>
+      <textarea rows="2" [(ngModel)]="customerForm.notes" placeholder="Any additional context"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" (click)="closeCustomerModal()">Cancel</button>
+      <button class="btn-primary" [disabled]="savingCustomer" (click)="saveCustomer()">
+        {{ savingCustomer ? 'Saving…' : (editingCustomer ? 'Update Client' : 'Add Client') }}
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Add / Edit Member Modal ─────────────────────────── -->
 <app-user-modal
   [visible]="userModalVisible"
@@ -1327,6 +1498,7 @@
   [allUsers]="users"
   [currentUserRole]="currentUser?.role ?? ''"
   [saving]="savingUser"
+  [apiError]="userModalError"
   (save)="onSaveUser($event)"
   (cancel)="closeUserModal()">
 </app-user-modal>

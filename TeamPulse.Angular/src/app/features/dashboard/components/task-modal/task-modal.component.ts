@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from '@angular/forms';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
 import { Task, TaskRequest } from '../../../../core/models/task.model';
+import { Customer } from '../../../../core/models/customer.model';
 import { TaskDocument } from '../../../../core/models/task-document.model';
 import { PaymentTransaction, PAYMENT_METHODS } from '../../../../core/models/payment-transaction.model';
 import { User, ROLE_HIERARCHY } from '../../../../core/models/user.model';
@@ -25,10 +26,29 @@ export class TaskModalComponent implements OnChanges {
   @Input() visible = false;
   @Input() task: Task | null = null;
   @Input() users: User[] = [];
+  @Input() customers: Customer[] = [];
+  @Input() allTasks: Task[] = [];
   @Input() currentUserRole = '';
   @Input() saving = false;
   /** Pre-fill the deadline for new tasks (YYYY-MM-DD) */
   @Input() defaultDeadline = '';
+  /** Pre-fill parentTaskId when creating a subtask from a parent's row */
+  @Input() defaultParentTaskId = '';
+
+  customerSearch = '';
+  get filteredCustomers(): Customer[] {
+    const q = this.customerSearch.toLowerCase();
+    return q ? this.customers.filter(c => c.name.toLowerCase().includes(q) || c.phone?.includes(q)) : this.customers;
+  }
+
+  get parentTaskOptions(): Task[] {
+    return this.allTasks.filter(t => !t.parentTaskId && t.id !== this.task?.id && !t.subTaskCount);
+  }
+
+  get parentLockedLabel(): string {
+    const p = this.allTasks.find(t => t.id === this.defaultParentTaskId);
+    return p ? `Subtask of #${p.number} — ${p.title}` : 'Subtask (parent pre-selected)';
+  }
 
   @Output() save   = new EventEmitter<TaskSavePayload>();
   @Output() cancel = new EventEmitter<void>();
@@ -40,7 +60,9 @@ export class TaskModalComponent implements OnChanges {
     priority:      ['Medium', Validators.required],
     status:        ['new', Validators.required],
     deadline:      [''],
+    customerId:    [''],
     clientContact: [''],
+    parentTaskId:  [''],
     billing:       [''],
     paymentStatus: ['N/A'],
     remarks:       [''],
@@ -104,7 +126,9 @@ export class TaskModalComponent implements OnChanges {
         priority:      this.task.priority,
         status:        this.task.status,
         deadline:      this.task.deadline ? this.task.deadline.split('T')[0] : '',
+        customerId:    this.task.customerId ?? '',
         clientContact: this.task.clientContact ?? '',
+        parentTaskId:  this.task.parentTaskId ?? '',
         billing:       this.task.billing ?? '',
         paymentStatus: this.task.paymentStatus ?? 'N/A',
         remarks:       this.task.remarks ?? '',
@@ -113,6 +137,9 @@ export class TaskModalComponent implements OnChanges {
       this.loadPayments();
     } else {
       this.form.reset({ priority: 'Medium', status: 'new', paymentStatus: 'N/A', deadline: this.defaultDeadline });
+      if (this.defaultParentTaskId) {
+        this.form.patchValue({ parentTaskId: this.defaultParentTaskId });
+      }
     }
   }
 
@@ -243,7 +270,9 @@ export class TaskModalComponent implements OnChanges {
       priority:      v.priority      ?? undefined,
       status:        v.status        ?? undefined,
       deadline:      v.deadline      || undefined,
+      customerId:    v.customerId    || undefined,
       clientContact: v.clientContact || undefined,
+      parentTaskId:  v.parentTaskId  || undefined,
       billing:       v.billing       || undefined,
       paymentStatus: v.paymentStatus ?? undefined,
       remarks:       v.remarks       || undefined,

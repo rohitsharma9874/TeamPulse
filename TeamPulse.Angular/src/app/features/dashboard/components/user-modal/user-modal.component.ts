@@ -32,6 +32,7 @@ export class UserModalComponent implements OnChanges {
   @Input() allUsers: User[] = [];             // for Reports-To dropdown
   @Input() currentUserRole = '';
   @Input() saving = false;
+  @Input() apiError = '';
 
   @Output() save   = new EventEmitter<UserSavePayload>();
   @Output() cancel = new EventEmitter<void>();

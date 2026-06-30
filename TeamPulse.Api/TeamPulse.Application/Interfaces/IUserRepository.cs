@@ -12,5 +12,6 @@ namespace TeamPulse.Application.Interfaces
         Task<User?> GetByResetTokenAsync(string token);
         Task<IReadOnlyList<User>> GetByCompanyAsync(string companyId);
         Task<bool> UsernameExistsAsync(string username);
+        Task<bool> EmailExistsAsync(string email);
     }
 }

@@ -33,5 +33,8 @@ namespace TeamPulse.Infrastructure.Repositories
 
         public async Task<bool> UsernameExistsAsync(string username) =>
             await _set.AnyAsync(u => u.Username == username);
+
+        public async Task<bool> EmailExistsAsync(string email) =>
+            await _set.AnyAsync(u => u.Email == email);
     }
 }

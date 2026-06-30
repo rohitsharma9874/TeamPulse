@@ -32,7 +32,20 @@
     font-size: 1.1rem;
     font-family: 'Syne', sans-serif;
     color: #1B3A6B;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
+}
+
+.task-num-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #eff6ff;
+  color: #1B3A6B;
+  padding: 0.15rem 0.5rem;
+  border-radius: 5px;
+  font-family: monospace;
 }
 
 .btn-close {
@@ -390,3 +403,24 @@
 .pay-method  { font-size: 0.72rem; color: #6b7280; background: #f3f4f6; padding: 0.1rem 0.4rem; border-radius: 4px; }
 .pay-date    { font-size: 0.72rem; color: #6b7280; }
 .pay-notes   { font-size: 0.72rem; color: #9ca3af; font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+
+.hint { font-size: 0.72rem; color: #9ca3af; font-weight: 400; margin-left: 0.3rem; }
+
+.parent-locked {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.75rem;
+  background: #eff6ff;
+  border: 1.5px solid #bfdbfe;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: #1d4ed8;
+  font-weight: 500;
+}
+
+.hint-text {
+  font-size: 0.72rem;
+  color: #f59e0b;
+  margin-top: 0.25rem;
+}

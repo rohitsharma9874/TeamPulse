@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using TeamPulse.Application.DTOs.Auth;
 using TeamPulse.Application.DTOs.User;
@@ -101,6 +102,10 @@ namespace TeamPulse.Api.Controllers
             catch (InvalidOperationException ex)
             {
                 return Conflict(new { message = ex.Message });
+            }
+            catch (DbUpdateException)
+            {
+                return Conflict(new { message = "A user with that username or email already exists." });
             }
         }
 

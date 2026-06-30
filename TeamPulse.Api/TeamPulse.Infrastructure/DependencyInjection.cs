@@ -23,6 +23,7 @@ namespace TeamPulse.Infrastructure
 
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<ITaskRepository, TaskRepository>();
+            services.AddScoped<ICustomerRepository, CustomerRepository>();
             services.AddScoped<IAuditLogRepository, AuditLogRepository>();
             services.AddScoped<ITaskDocumentRepository, TaskDocumentRepository>();
             services.AddScoped<IMemberDocumentRepository, MemberDocumentRepository>();

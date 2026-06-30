@@ -14,23 +14,28 @@ namespace TeamPulse.Api.Controllers
     public class MemberDocumentController : ControllerBase
     {
         private readonly IMemberDocumentRepository _docRepo;
-        private readonly string _uploadsPath;
+        private readonly string _uploadsBase;
 
         public MemberDocumentController(IMemberDocumentRepository docRepo, IWebHostEnvironment env, IConfiguration config)
         {
             _docRepo = docRepo;
-            // Use Storage:UploadsPath from config when set (e.g. a mounted volume in Azure Container Apps).
-            // Falls back to <ContentRootPath>/uploads/members for local development.
             var configured = config["Storage:UploadsPath"];
-            _uploadsPath = string.IsNullOrWhiteSpace(configured)
-                ? Path.Combine(env.ContentRootPath, "uploads", "members")
-                : Path.Combine(configured, "members");
-            Directory.CreateDirectory(_uploadsPath);
+            _uploadsBase = string.IsNullOrWhiteSpace(configured)
+                ? Path.Combine(env.ContentRootPath, "uploads")
+                : configured;
         }
 
         private string CurrentUserId    => User.FindFirstValue(ClaimTypes.NameIdentifier)
                                         ?? User.FindFirstValue("sub") ?? string.Empty;
         private string CurrentCompanyId => User.FindFirstValue("companyId") ?? string.Empty;
+
+        // Files are stored under {uploadsBase}/{companyId}/members/{storedName}
+        private string TenantPath(string companyId)
+        {
+            var path = Path.Combine(_uploadsBase, companyId, "members");
+            Directory.CreateDirectory(path);
+            return path;
+        }
 
         /// <summary>Upload a document for a team member.</summary>
         [HttpPost("{userId}")]
@@ -42,7 +47,7 @@ namespace TeamPulse.Api.Controllers
 
             var ext        = Path.GetExtension(file.FileName);
             var storedName = $"{Guid.NewGuid():N}{ext}";
-            var filePath   = Path.Combine(_uploadsPath, storedName);
+            var filePath   = Path.Combine(TenantPath(CurrentCompanyId), storedName);
 
             await using (var stream = System.IO.File.Create(filePath))
                 await file.CopyToAsync(stream);
@@ -82,7 +87,7 @@ namespace TeamPulse.Api.Controllers
             var doc = await _docRepo.GetByIdAsync(id);
             if (doc is null) return NotFound();
 
-            var filePath = Path.Combine(_uploadsPath, doc.StoredName);
+            var filePath = Path.Combine(TenantPath(doc.CompanyId), doc.StoredName);
             if (!System.IO.File.Exists(filePath))
                 return NotFound(new { message = "File not found on server." });
 
@@ -96,7 +101,7 @@ namespace TeamPulse.Api.Controllers
             var doc = await _docRepo.GetByIdAsync(id);
             if (doc is null) return NotFound();
 
-            var filePath = Path.Combine(_uploadsPath, doc.StoredName);
+            var filePath = Path.Combine(TenantPath(doc.CompanyId), doc.StoredName);
             if (System.IO.File.Exists(filePath))
                 System.IO.File.Delete(filePath);
 

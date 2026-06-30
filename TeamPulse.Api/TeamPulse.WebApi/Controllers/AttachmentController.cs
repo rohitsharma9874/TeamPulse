@@ -14,23 +14,28 @@ namespace TeamPulse.Api.Controllers
     public class AttachmentController : ControllerBase
     {
         private readonly ITaskDocumentRepository _docRepo;
-        private readonly string _uploadsPath;
+        private readonly string _uploadsBase;
 
         public AttachmentController(ITaskDocumentRepository docRepo, IWebHostEnvironment env, IConfiguration config)
         {
             _docRepo = docRepo;
-            // Use Storage:UploadsPath from config when set (e.g. a mounted volume in Azure Container Apps).
-            // Falls back to <ContentRootPath>/uploads for local development.
             var configured = config["Storage:UploadsPath"];
-            _uploadsPath = string.IsNullOrWhiteSpace(configured)
+            _uploadsBase = string.IsNullOrWhiteSpace(configured)
                 ? Path.Combine(env.ContentRootPath, "uploads")
                 : configured;
-            Directory.CreateDirectory(_uploadsPath);
         }
 
         private string CurrentUserId    => User.FindFirstValue(ClaimTypes.NameIdentifier)
                                         ?? User.FindFirstValue("sub") ?? string.Empty;
         private string CurrentCompanyId => User.FindFirstValue("companyId") ?? string.Empty;
+
+        // Files stored at {uploadsBase}/{companyId}/tasks/{taskId}/{storedName}
+        private string TaskPath(string companyId, string taskId)
+        {
+            var path = Path.Combine(_uploadsBase, companyId, "tasks", taskId);
+            Directory.CreateDirectory(path);
+            return path;
+        }
 
         /// <summary>Upload one file and attach it to a task.</summary>
         [HttpPost("{taskId}")]
@@ -42,7 +47,7 @@ namespace TeamPulse.Api.Controllers
 
             var ext        = Path.GetExtension(file.FileName);
             var storedName = $"{Guid.NewGuid():N}{ext}";
-            var filePath   = Path.Combine(_uploadsPath, storedName);
+            var filePath   = Path.Combine(TaskPath(CurrentCompanyId, taskId), storedName);
 
             await using (var stream = System.IO.File.Create(filePath))
                 await file.CopyToAsync(stream);
@@ -81,7 +86,7 @@ namespace TeamPulse.Api.Controllers
             var doc = await _docRepo.GetByIdAsync(id);
             if (doc is null) return NotFound();
 
-            var filePath = Path.Combine(_uploadsPath, doc.StoredName);
+            var filePath = Path.Combine(TaskPath(doc.CompanyId, doc.TaskId), doc.StoredName);
             if (!System.IO.File.Exists(filePath))
                 return NotFound(new { message = "File not found on server." });
 
@@ -95,7 +100,7 @@ namespace TeamPulse.Api.Controllers
             var doc = await _docRepo.GetByIdAsync(id);
             if (doc is null) return NotFound();
 
-            var filePath = Path.Combine(_uploadsPath, doc.StoredName);
+            var filePath = Path.Combine(TaskPath(doc.CompanyId, doc.TaskId), doc.StoredName);
             if (System.IO.File.Exists(filePath))
                 System.IO.File.Delete(filePath);
 

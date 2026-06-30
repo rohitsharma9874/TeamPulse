@@ -1,7 +1,7 @@
-<div class="kanban-board">
+<div class="board">
   <div
     *ngFor="let col of columns"
-    class="kanban-col"
+    class="board-col"
     [class.drag-over]="dragOverStatus === col.status"
     (dragover)="onDragOver($event, col.status)"
     (dragleave)="onDragLeave()"
@@ -23,6 +23,7 @@
         *ngFor="let task of getColumnTasks(col.status)"
         class="task-card"
         [class.overdue]="isOverdue(task)"
+        [class.has-subtasks]="task.subTaskCount > 0"
         draggable="true"
         (click)="viewTask.emit(task)"
         (dragstart)="onDragStart($event, task.id)"
@@ -32,14 +33,26 @@
         <div class="priority-stripe" [attr.data-priority]="task.priority"></div>
 
         <div class="card-body">
+          <!-- Task ref + title -->
+          <div class="card-ref-row">
+            <span class="task-ref" *ngIf="task.number">{{ taskRef(task) }}</span>
+            <span class="overdue-tag" *ngIf="isOverdue(task)">Overdue</span>
+          </div>
           <p class="card-title">{{ task.title }}</p>
           <p class="card-desc" *ngIf="task.description">{{ task.description }}</p>
+
+          <!-- Customer tag -->
+          <p class="card-customer" *ngIf="task.customerName">
+            <tp-icon name="user" [size]="10"></tp-icon> {{ task.customerName }}
+          </p>
 
           <div class="card-meta">
             <span class="badge badge-priority" [attr.data-priority]="task.priority">
               {{ task.priority }}
             </span>
-            <span class="overdue-tag" *ngIf="isOverdue(task)">Overdue</span>
+            <span class="subtask-badge" *ngIf="task.subTaskCount > 0">
+              <tp-icon name="git-branch" [size]="10"></tp-icon> {{ task.subTaskCount }}
+            </span>
           </div>
 
           <div class="card-footer">

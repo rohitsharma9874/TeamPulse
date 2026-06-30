@@ -2,7 +2,10 @@
 
 <div class="modal" *ngIf="visible" role="dialog" aria-modal="true">
   <div class="modal-header">
-    <h2>{{ isEdit ? 'Edit Task' : 'New Task' }}</h2>
+    <h2>
+      <span *ngIf="isEdit && task?.number" class="task-num-badge">#{{ task!.number }}</span>
+      {{ isEdit ? 'Edit Task' : 'New Task' }}
+    </h2>
     <button class="btn-close" (click)="close()" aria-label="Close">&times;</button>
   </div>
 
@@ -54,10 +57,31 @@
       </div>
     </div>
 
-    <!-- Client Contact -->
-    <div class="field full">
-      <label>Client Contact</label>
-      <input formControlName="clientContact" type="text" placeholder="Name / Phone" />
+    <!-- Customer -->
+    <div class="field-row">
+      <div class="field">
+        <label>Customer</label>
+        <select formControlName="customerId">
+          <option value="">— No customer —</option>
+          <option *ngFor="let c of customers" [value]="c.id">{{ c.name }}{{ c.phone ? ' · ' + c.phone : '' }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Parent Task <span class="hint">optional — one level only</span></label>
+        <!-- Locked when opened via "Add Subtask" on a specific parent -->
+        <div *ngIf="defaultParentTaskId && !isEdit" class="parent-locked">
+          <tp-icon name="git-branch" [size]="13"></tp-icon>
+          {{ parentLockedLabel }}
+        </div>
+        <select *ngIf="!defaultParentTaskId || isEdit" formControlName="parentTaskId"
+                [disabled]="isEdit && !!task?.subTaskCount">
+          <option value="">— None (top-level task) —</option>
+          <option *ngFor="let t of parentTaskOptions" [value]="t.id">#{{ t.number }} {{ t.title }}</option>
+        </select>
+        <span class="hint-text" *ngIf="isEdit && task?.subTaskCount && task!.subTaskCount > 0">
+          This task has subtasks and cannot itself become a subtask.
+        </span>
+      </div>
     </div>
 
     <!-- Billing + Payment -->

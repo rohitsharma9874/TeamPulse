@@ -23,6 +23,7 @@ export interface CreateTenantRequest {
   adminPassword?: string;
 }
 import { User, CreateUserRequest, UpdateProfileRequest } from '../models/user.model';
+import { Customer, CreateCustomerRequest, UpdateCustomerRequest, CustomerImportResult } from '../models/customer.model';
 import { AppNotification } from '../models/notification.model';
 import { Task, TaskRequest } from '../models/task.model';
 import { TaskDocument } from '../models/task-document.model';
@@ -77,6 +78,10 @@ export class ApiService {
 
   deleteTask(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/task/${id}`);
+  }
+
+  getSubtasks(taskId: string): Observable<Task[]> {
+    return this.http.get<Task[]>(`${this.base}/task/${taskId}/subtasks`);
   }
 
   // Activity
@@ -137,6 +142,33 @@ export class ApiService {
 
   deletePaymentTransaction(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/payment-transaction/${id}`);
+  }
+
+  // Customers
+  getCustomers(): Observable<Customer[]> {
+    return this.http.get<Customer[]>(`${this.base}/customer`);
+  }
+
+  createCustomer(req: CreateCustomerRequest): Observable<Customer> {
+    return this.http.post<Customer>(`${this.base}/customer`, req);
+  }
+
+  updateCustomer(id: string, req: UpdateCustomerRequest): Observable<Customer> {
+    return this.http.put<Customer>(`${this.base}/customer/${id}`, req);
+  }
+
+  deleteCustomer(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/customer/${id}`);
+  }
+
+  downloadCustomerTemplate(): Observable<Blob> {
+    return this.http.get(`${this.base}/customer/import-template`, { responseType: 'blob' });
+  }
+
+  importCustomers(file: File): Observable<CustomerImportResult> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.http.post<CustomerImportResult>(`${this.base}/customer/import`, form);
   }
 
   // Platform admin — tenant management

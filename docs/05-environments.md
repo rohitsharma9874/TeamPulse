@@ -31,9 +31,12 @@ These are all env vars the API reads from configuration. For local dev they go i
 | `App__Url` | Frontend base URL — used to build password reset links | `https://teampulsewebks.z13.web.core.windows.net` |
 | `Smtp__Host` | SMTP server for password reset emails | `smtp.gmail.com` |
 | `Smtp__Port` | SMTP port | `587` |
+| `Smtp__EnableSsl` | Enable TLS | `true` |
 | `Smtp__Username` | SMTP account email | `your@gmail.com` |
 | `Smtp__Password` | Gmail App Password | *(secret — never commit)* |
+| `Smtp__From` | Sender email address | `your@gmail.com` |
 | `Smtp__FromName` | Display name in emails | `TeamPulse` |
+| `Storage__UploadsPath` | Directory for uploaded files — maps to the Azure File Share mount point | `/mnt/uploads` |
 
 > `__` (double underscore) is the Azure convention for nested config keys (maps to `Jwt:Secret` in .NET).
 

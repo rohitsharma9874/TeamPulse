@@ -234,6 +234,8 @@
         </div>
       </div>
 
+      <p class="modal-api-error" *ngIf="apiError">{{ apiError }}</p>
+
       <div class="modal-footer">
         <button type="button" class="btn-secondary" (click)="cancel.emit()" [disabled]="saving">Cancel</button>
         <button type="submit" class="btn-primary" [disabled]="saving">

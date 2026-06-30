@@ -14,16 +14,17 @@ import { AppNotification } from '../../core/models/notification.model';
 import { PermissionService, AppPermissions, getRoleTier } from '../../core/services/permission.service';
 import { User, CreateUserRequest, UpdateProfileRequest, ROLE_LABELS, ROLE_HIERARCHY } from '../../core/models/user.model';
 import { Task, TaskRequest, PRIORITY_ORDER } from '../../core/models/task.model';
+import { Customer, CreateCustomerRequest, UpdateCustomerRequest } from '../../core/models/customer.model';
 import { Activity } from '../../core/models/activity.model';
 import { TaskModalComponent, TaskSavePayload } from './components/task-modal/task-modal.component';
-import { KanbanComponent, KanbanStatus } from './components/kanban/kanban.component';
+import { TaskBoardComponent, BoardStatus } from './components/task-board/task-board.component';
 import { UserModalComponent, UserSavePayload } from './components/user-modal/user-modal.component';
 import { ProfileModalComponent } from './components/profile-modal/profile-modal.component';
 import { MemberDetailModalComponent } from './components/member-detail-modal/member-detail-modal.component';
 import { DatePickerComponent } from '../../shared/components/date-picker/date-picker.component';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 
-type NavSection    = 'overview' | 'tasks' | 'team' | 'activity' | 'deadlines' | 'performance' | 'alerts';
+type NavSection    = 'overview' | 'tasks' | 'team' | 'activity' | 'deadlines' | 'performance' | 'alerts' | 'clients';
 type TasksTab      = 'list' | 'board' | 'guide';
 type OverviewTab   = 'pulse' | 'workload' | 'finances' | 'urgent';
 type PerformanceTab = 'leaderboard' | 'metrics' | 'billing';
@@ -37,7 +38,7 @@ interface OrgTier { label: string; rank: number; members: User[]; }
 @Component({
   standalone: true,
   selector: 'app-dashboard',
-  imports: [CommonModule, FormsModule, TaskModalComponent, KanbanComponent, UserModalComponent, ProfileModalComponent, MemberDetailModalComponent, DatePickerComponent, IconComponent],
+  imports: [CommonModule, FormsModule, TaskModalComponent, TaskBoardComponent, UserModalComponent, ProfileModalComponent, MemberDetailModalComponent, DatePickerComponent, IconComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss'],
 })
@@ -47,8 +48,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   users: User[] = [];
   tasks: Task[] = [];
+  customers: Customer[] = [];
   activities: Activity[] = [];
   loading = true;
+
+  // Clients section state
+  customerSearch = '';
+  customerPage   = 0;
+  readonly customerPageSize = 20;
+  showCustomerModal  = false;
+  editingCustomer: Customer | null = null;
+  savingCustomer     = false;
+  customerError      = '';
+  customerForm = { name: '', email: '', phone: '', address: '', notes: '' };
+  importingCustomers = false;
+  importResult: { imported: number; skipped: number; errors: string[] } | null = null;
 
   // Permissions — plain property, updated in recompute() to avoid getter re-evaluation every CD cycle
   perms: AppPermissions = this.permService.permsFor(this.currentUser?.role ?? '');
@@ -78,12 +92,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   editingTask: Task | null = null;
   savingTask = false;
   deleteConfirmId: string | null = null;
-  private _pendingStatus: KanbanStatus | null = null;
+  private _pendingStatus: BoardStatus | null = null;
 
   // User modal (add + edit)
   userModalVisible = false;
   editingUser: User | null = null;
   savingUser = false;
+  userModalError = '';
   deleteUserConfirmId: string | null = null;
 
   // Member detail drawer
@@ -110,7 +125,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   boardMonth = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; })();
   boardDateFrom = '';
   boardDateTo   = '';
-  boardStageFilter: KanbanStatus | null = null;
+  boardStageFilter: BoardStatus | null = null;
 
   // Inactivity warning
   showInactivityWarning = false;
@@ -137,6 +152,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // Task list pagination
   taskPage = 0;
   readonly taskPageSize = 20;
+
+  // Task tree: expand/collapse subtask rows inline
+  expandedTaskIds = new Set<string>();
+  subtaskCache    = new Map<string, Task[]>();
+  loadingSubtask  = new Set<string>();
+  /** Set before opening task modal to pre-fill parentTaskId for a new subtask */
+  defaultSubTaskParentId = '';
 
   // Team directory pagination
   teamPage = 0;
@@ -176,11 +198,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   readonly pageMeta: Record<NavSection, [string, string]> = {
     overview:    ['Team Dashboard',    'Live summary — work status & team health'],
     performance: ['Team Performance',  'Individual workload, leaderboard & billing stats'],
-    tasks:       ['Tasks',             'List view, kanban board & workflow guide'],
+    tasks:       ['Tasks',             'List view, task board & workflow guide'],
     deadlines:   ['Deadline Tracker',  'Overdue & upcoming matters at a glance'],
     alerts:      ['Alerts & Health',   'Issues requiring immediate attention'],
     activity:    ['Activity Log',      'Chronological audit trail of all team actions'],
     team:        ['Team Directory',    'Organisation hierarchy by role'],
+    clients:     ['Clients',           'Customer directory — add, edit and import contacts'],
   };
 
   get navGroups(): NavGroup[] { return this._navGroups; }
@@ -196,9 +219,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
       ]},
       { key: 'tasks', label: 'Tasks', icon: 'check-square', subItems: [
         { tab: 'list',  label: 'List',           icon: 'list' },
-        { tab: 'board', label: 'Board',          icon: 'columns' },
+        { tab: 'board', label: 'Task Board',     icon: 'columns' },
         { tab: 'guide', label: 'Workflow Guide', icon: 'book-open' },
       ]},
+      { key: 'clients', label: 'Clients', icon: 'briefcase' },
       { key: 'deadlines', label: 'Deadlines', icon: 'calendar', badgeKey: 'overdue' },
     ];
     const teamItems: NavItem[] = [
@@ -293,11 +317,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
       users:      this.api.getUsers(),
       tasks:      this.api.getTasks(),
       activities: this.api.getActivities(),
+      customers:  this.api.getCustomers(),
     }).subscribe({
-      next: ({ users, tasks, activities }) => {
+      next: ({ users, tasks, activities, customers }) => {
         this.users      = (users ?? []).filter(u => u.role?.toLowerCase() !== 'owner');
         this.tasks      = tasks      ?? [];
         this.activities = activities ?? [];
+        this.customers  = customers  ?? [];
         this.loading    = false;
         try {
           this.recompute();
@@ -430,6 +456,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const to   = this.taskDateTo   ? new Date(this.taskDateTo)   : null;
     if (to) to.setHours(23, 59, 59, 999);
     return this._visibleTasks.filter(t => {
+      if (t.parentTaskId) return false;  // list shows only top-level tasks; subtasks shown inline when expanded
       const matchSearch   = !s || t.title.toLowerCase().includes(s) || (t.description ?? '').toLowerCase().includes(s);
       const matchStatus   = !this.taskStatusFilter   || t.status   === this.taskStatusFilter;
       const matchPriority = !this.taskPriorityFilter || t.priority === this.taskPriorityFilter;
@@ -506,7 +533,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   /** The columns visible on the kanban board based on the user's role */
-  get visibleKanbanStatuses(): KanbanStatus[] | null {
+  get visibleBoardStatuses(): BoardStatus[] | null {
     if (this.perms.canSeeEarlyStages) return null;
     return ['ready', 'in-progress', 'review', 'complete'];
   }
@@ -544,7 +571,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.boardFilterMode = mode;
   }
 
-  selectStage(stage: KanbanStatus | null): void {
+  selectStage(stage: BoardStatus | null): void {
     this.boardStageFilter = this.boardStageFilter === stage ? null : stage;
   }
 
@@ -811,11 +838,49 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   // ── Task CRUD ────────────────────────────────────────────
-  openCreateTask(): void { this.editingTask = null; this.taskModalVisible = true; }
-  openEditTask(task: Task): void { this.editingTask = task; this.taskModalVisible = true; }
-  closeTaskModal(): void { this.taskModalVisible = false; this.editingTask = null; }
+  openCreateTask(): void {
+    this.editingTask = null;
+    this.defaultSubTaskParentId = '';
+    this.taskModalVisible = true;
+  }
 
-  openCreateTaskInColumn(status: KanbanStatus): void {
+  openEditTask(task: Task): void { this.editingTask = task; this.taskModalVisible = true; }
+
+  closeTaskModal(): void {
+    this.taskModalVisible = false;
+    this.editingTask = null;
+    this.defaultSubTaskParentId = '';
+  }
+
+  // ── Subtask tree ──────────────────────────────────────────
+  toggleSubtasks(task: Task, event: Event): void {
+    event.stopPropagation();
+    if (this.expandedTaskIds.has(task.id)) {
+      this.expandedTaskIds.delete(task.id);
+    } else {
+      this.expandedTaskIds.add(task.id);
+      if (!this.subtaskCache.has(task.id)) {
+        this.loadingSubtask.add(task.id);
+        this.api.getSubtasks(task.id).subscribe({
+          next: subs => { this.subtaskCache.set(task.id, subs); this.loadingSubtask.delete(task.id); },
+          error: ()  => { this.loadingSubtask.delete(task.id); },
+        });
+      }
+    }
+  }
+
+  isExpanded(taskId: string): boolean { return this.expandedTaskIds.has(taskId); }
+  isLoadingSubtasks(taskId: string): boolean { return this.loadingSubtask.has(taskId); }
+  getSubtasksFor(taskId: string): Task[] { return this.subtaskCache.get(taskId) ?? []; }
+
+  openCreateSubTask(parent: Task, event: Event): void {
+    event.stopPropagation();
+    this.editingTask = null;
+    this.defaultSubTaskParentId = parent.id;
+    this.taskModalVisible = true;
+  }
+
+  openCreateTaskInColumn(status: BoardStatus): void {
     this.editingTask = null;
     this._pendingStatus = status;
     this.taskModalVisible = true;
@@ -836,9 +901,27 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     op.subscribe({
       next: (saved) => {
-        this.tasks = this.editingTask
-          ? this.tasks.map(t => t.id === saved.id ? saved : t)
-          : [saved, ...this.tasks];
+        if (this.editingTask) {
+          this.tasks = this.tasks.map(t => t.id === saved.id ? saved : t);
+        } else {
+          this.tasks = [saved, ...this.tasks];
+          // If this was a subtask, refresh the parent's cache + increment count
+          if (saved.parentTaskId) {
+            const parentId = saved.parentTaskId;
+            if (this.subtaskCache.has(parentId)) {
+              this.subtaskCache.set(parentId, [...(this.subtaskCache.get(parentId) ?? []), saved]);
+            }
+            this.tasks = this.tasks.map(t =>
+              t.id === parentId ? { ...t, subTaskCount: t.subTaskCount + 1 } : t
+            );
+            if (!this.expandedTaskIds.has(parentId)) {
+              this.expandedTaskIds.add(parentId);
+              if (!this.subtaskCache.has(parentId)) {
+                this.subtaskCache.set(parentId, [saved]);
+              }
+            }
+          }
+        }
         this.recompute();
         this.api.logActivity({
           entityType: 'Task', entityId: saved.id,
@@ -853,7 +936,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  onKanbanMove(event: { taskId: string; status: KanbanStatus }): void {
+  onKanbanMove(event: { taskId: string; status: BoardStatus }): void {
     this.api.updateTask(event.taskId, { status: event.status }).subscribe({
       next: (saved) => {
         this.tasks = this.tasks.map(t => t.id === saved.id ? saved : t);
@@ -886,12 +969,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // ── User management ──────────────────────────────────────
   openAddMember(): void {
     this.editingUser = null;
+    this.userModalError = '';
     this.userModalVisible = true;
     this.memberDetailVisible = false;
   }
 
   openEditMember(user: User): void {
     this.editingUser = user;
+    this.userModalError = '';
     this.userModalVisible = true;
     this.memberDetailVisible = false;
   }
@@ -899,6 +984,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   closeUserModal(): void {
     this.userModalVisible = false;
     this.editingUser = null;
+    this.userModalError = '';
   }
 
   openMemberDetail(user: User): void {
@@ -966,6 +1052,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   onSaveUser(payload: UserSavePayload & { files?: { file: File; docType: string }[] }): void {
     this.savingUser = true;
+    this.userModalError = '';
 
     if (payload.isEdit && payload.userId) {
       const request = payload.request as UpdateProfileRequest;
@@ -977,7 +1064,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
             this.currentUser = updated;
           }
           this.recompute();
-          // Upload any pending docs
           (payload.files ?? []).forEach(p =>
             this.api.uploadMemberDocument(updated.id, p.file, p.docType).subscribe()
           );
@@ -985,7 +1071,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.savingUser = false;
           this.closeUserModal();
         },
-        error: () => { this.savingUser = false; },
+        error: (err) => {
+          this.savingUser = false;
+          this.userModalError = err?.error?.message ?? 'Failed to update member.';
+        },
       });
     } else {
       const request = payload.request as CreateUserRequest;
@@ -1001,7 +1090,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.closeUserModal();
           this.cdr.detectChanges();
         },
-        error: () => { this.savingUser = false; this.cdr.detectChanges(); },
+        error: (err) => {
+          this.savingUser = false;
+          this.userModalError = err?.error?.message ?? 'Failed to add member.';
+          this.cdr.detectChanges();
+        },
       });
     }
   }
@@ -1174,5 +1267,125 @@ export class DashboardComponent implements OnInit, OnDestroy {
       options: { animation: false, responsive: true, plugins: { legend: { labels: { color: this.chartTextColor } } }, scales: { y: { beginAtZero: true, ticks: { color: this.chartTextColor }, grid: { color: this.chartGridColor } }, x: { ticks: { color: this.chartTextColor }, grid: { display: false } } } },
     });
     this.charts.set('dualbar', c);
+  }
+
+  // ── Clients section ───────────────────────────────────────
+  get filteredCustomers(): Customer[] {
+    const q = this.customerSearch.trim().toLowerCase();
+    const list = q
+      ? this.customers.filter(c =>
+          c.name.toLowerCase().includes(q) ||
+          c.email?.toLowerCase().includes(q) ||
+          c.phone?.toLowerCase().includes(q))
+      : this.customers;
+    return list.slice(this.customerPage * this.customerPageSize, (this.customerPage + 1) * this.customerPageSize);
+  }
+
+  get customerTotalPages(): number {
+    const q = this.customerSearch.trim().toLowerCase();
+    const count = q
+      ? this.customers.filter(c => c.name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q)).length
+      : this.customers.length;
+    return Math.ceil(count / this.customerPageSize) || 1;
+  }
+
+  openCreateCustomer(): void {
+    this.editingCustomer = null;
+    this.customerForm    = { name: '', email: '', phone: '', address: '', notes: '' };
+    this.customerError   = '';
+    this.showCustomerModal = true;
+  }
+
+  openEditCustomer(c: Customer): void {
+    this.editingCustomer = c;
+    this.customerForm    = { name: c.name, email: c.email ?? '', phone: c.phone ?? '', address: c.address ?? '', notes: c.notes ?? '' };
+    this.customerError   = '';
+    this.showCustomerModal = true;
+  }
+
+  closeCustomerModal(): void {
+    this.showCustomerModal = false;
+    this.editingCustomer   = null;
+    this.importResult      = null;
+  }
+
+  saveCustomer(): void {
+    if (!this.customerForm.name.trim()) { this.customerError = 'Name is required.'; return; }
+    this.savingCustomer = true;
+    this.customerError  = '';
+    const req: CreateCustomerRequest = {
+      name:    this.customerForm.name.trim(),
+      email:   this.customerForm.email.trim() || undefined,
+      phone:   this.customerForm.phone.trim() || undefined,
+      address: this.customerForm.address.trim() || undefined,
+      notes:   this.customerForm.notes.trim() || undefined,
+    };
+
+    if (this.editingCustomer) {
+      const upd: UpdateCustomerRequest = { ...req, isActive: this.editingCustomer.isActive };
+      this.api.updateCustomer(this.editingCustomer.id, upd).subscribe({
+        next: updated => {
+          this.customers      = this.customers.map(c => c.id === updated.id ? updated : c);
+          this.savingCustomer = false;
+          this.closeCustomerModal();
+        },
+        error: () => {
+          this.customerError  = 'Failed to update customer.';
+          this.savingCustomer = false;
+          this.cdr.detectChanges();
+        },
+      });
+    } else {
+      this.api.createCustomer(req).subscribe({
+        next: created => {
+          this.customers      = [created, ...this.customers];
+          this.savingCustomer = false;
+          this.closeCustomerModal();
+        },
+        error: () => {
+          this.customerError  = 'Failed to create customer.';
+          this.savingCustomer = false;
+          this.cdr.detectChanges();
+        },
+      });
+    }
+  }
+
+  deleteCustomer(id: string): void {
+    if (!confirm('Delete this customer?')) return;
+    this.api.deleteCustomer(id).subscribe({
+      next: () => { this.customers = this.customers.filter(c => c.id !== id); this.cdr.detectChanges(); },
+    });
+  }
+
+  downloadCustomerTemplate(): void {
+    this.api.downloadCustomerTemplate().subscribe(blob => {
+      const url  = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href     = url;
+      link.download = 'clients-import-template.xlsx';
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  onCustomerImport(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.importingCustomers = true;
+    this.importResult       = null;
+    this.api.importCustomers(file).subscribe({
+      next: result => {
+        this.importResult       = result;
+        this.importingCustomers = false;
+        if (result.imported > 0) {
+          this.api.getCustomers().subscribe(list => { this.customers = list; this.cdr.detectChanges(); });
+        } else {
+          this.cdr.detectChanges();
+        }
+      },
+      error: () => { this.importingCustomers = false; this.cdr.detectChanges(); },
+    });
+    (event.target as HTMLInputElement).value = '';
   }
 }

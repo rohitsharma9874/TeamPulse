@@ -15,6 +15,7 @@ on:
 env:
   ACR_LOGIN_SERVER: teampulseacrks.azurecr.io
   RESOURCE_GROUP: teampulse-rg
+  UPLOADS_MOUNT_PATH: /mnt/uploads
 
 jobs:
 
@@ -75,7 +76,8 @@ jobs:
           az containerapp update \
             --name teampulse-api-staging \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ env.ACR_LOGIN_SERVER }}/teampulse-api:staging-${{ github.sha }}
+            --image ${{ env.ACR_LOGIN_SERVER }}/teampulse-api:staging-${{ github.sha }} \
+            --set-env-vars "Storage__UploadsPath=${{ env.UPLOADS_MOUNT_PATH }}"
 
   # ── Deploy to Production (main push, requires manual approval) ────────────
   deploy-production:
@@ -119,4 +121,5 @@ jobs:
           az containerapp update \
             --name teampulse-api \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ env.ACR_LOGIN_SERVER }}/teampulse-api:${{ github.sha }}
+            --image ${{ env.ACR_LOGIN_SERVER }}/teampulse-api:${{ github.sha }} \
+            --set-env-vars "Storage__UploadsPath=${{ env.UPLOADS_MOUNT_PATH }}"

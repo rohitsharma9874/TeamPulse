@@ -61,7 +61,6 @@ namespace TeamPulse.Api.Controllers
 
             if (ManagerRoles.Contains(CurrentUserRole))
             {
-                // Managers see tasks assigned to anyone in their department
                 var me = await _db.Users.AsNoTracking()
                     .FirstOrDefaultAsync(u => u.Id == CurrentUserId);
                 if (me?.Department is not null)
@@ -77,7 +76,6 @@ namespace TeamPulse.Api.Controllers
             }
             else if (!AllTaskRoles.Contains(CurrentUserRole))
             {
-                // Associates/staff only see tasks assigned to or created by them
                 tasks = tasks.Where(t =>
                     t.AssigneeId == CurrentUserId ||
                     t.CreatedByUserId == CurrentUserId).ToList();
@@ -93,21 +91,49 @@ namespace TeamPulse.Api.Controllers
             return task is null ? NotFound() : Ok(ToDto(task));
         }
 
+        [HttpGet("{id}/subtasks")]
+        public async Task<IActionResult> GetSubTasks(string id)
+        {
+            var subtasks = await _db.Tasks
+                .Include(t => t.Assignee)
+                .Include(t => t.Customer)
+                .Where(t => t.ParentTaskId == id)
+                .ToListAsync();
+            return Ok(subtasks.Select(ToDto));
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateTask([FromBody] TaskRequest request)
         {
             if (!WriteTaskRoles.Contains(CurrentUserRole))
                 return Forbid();
 
+            // Validate parent task if specified — enforce one-level hierarchy
+            if (!string.IsNullOrEmpty(request.ParentTaskId))
+            {
+                var parent = await _taskRepo.GetByIdAsync(request.ParentTaskId);
+                if (parent is null)
+                    return BadRequest(new { message = "Parent task not found." });
+                if (parent.ParentTaskId is not null)
+                    return BadRequest(new { message = "Subtasks cannot have their own subtasks (max one level)." });
+            }
+
+            // Assign next sequential number for this tenant atomically
+            var nextNumber = await _db.Tasks
+                .IgnoreQueryFilters()
+                .Where(t => t.CompanyId == CurrentCompanyId)
+                .MaxAsync(t => (int?)t.Number) ?? 0;
+            nextNumber++;
+
             var task = FromRequest(request);
-            task.CompanyId = CurrentCompanyId;
+            task.Number          = nextNumber;
+            task.CompanyId       = CurrentCompanyId;
             task.CreatedByUserId = CurrentUserId;
-            task.CreatedBy = CurrentUserId;
+            task.CreatedBy       = CurrentUserId;
 
             await _taskRepo.AddAsync(task);
             await _taskRepo.SaveChangesAsync();
 
-            // Notify the assignee if they are not the one creating the task
             if (!string.IsNullOrEmpty(task.AssigneeId) && task.AssigneeId != CurrentUserId)
             {
                 _db.Notifications.Add(new Notification
@@ -121,7 +147,9 @@ namespace TeamPulse.Api.Controllers
                 await _db.SaveChangesAsync();
             }
 
-            return CreatedAtAction(nameof(GetTask), new { id = task.Id }, ToDto(task));
+            // Reload with navigation properties for the response
+            var created = await _taskRepo.GetWithAssigneeAsync(task.Id);
+            return CreatedAtAction(nameof(GetTask), new { id = task.Id }, ToDto(created!));
         }
 
         [HttpPut("{id}")]
@@ -135,13 +163,14 @@ namespace TeamPulse.Api.Controllers
 
             var previousAssigneeId = task.AssigneeId;
 
-            task.Title         = request.Title         ?? task.Title;
-            task.Description   = request.Description   ?? task.Description;
-            task.AssigneeId    = request.Assignee       ?? task.AssigneeId;
-            task.Status        = request.Status         ?? task.Status;
-            task.Priority      = request.Priority       ?? task.Priority;
-            task.DueDate       = request.Deadline       ?? task.DueDate;
-            task.ClientContact = request.ClientContact  ?? task.ClientContact;
+            task.Title          = request.Title         ?? task.Title;
+            task.Description    = request.Description   ?? task.Description;
+            task.AssigneeId     = request.Assignee      ?? task.AssigneeId;
+            task.Status         = request.Status        ?? task.Status;
+            task.Priority       = request.Priority      ?? task.Priority;
+            task.DueDate        = request.Deadline      ?? task.DueDate;
+            task.ClientContact  = request.ClientContact ?? task.ClientContact;
+            task.CustomerId     = request.CustomerId    == "" ? null : (request.CustomerId ?? task.CustomerId);
             task.BillingDetails = request.Billing       ?? task.BillingDetails;
             task.PaymentStatus  = request.PaymentStatus ?? task.PaymentStatus;
             task.Remarks        = request.Remarks       ?? task.Remarks;
@@ -155,7 +184,6 @@ namespace TeamPulse.Api.Controllers
             await _taskRepo.UpdateAsync(task);
             await _taskRepo.SaveChangesAsync();
 
-            // Notify the new assignee if they changed and the current user is not the new assignee
             if (!string.IsNullOrEmpty(task.AssigneeId)
                 && task.AssigneeId != previousAssigneeId
                 && task.AssigneeId != CurrentUserId)
@@ -171,7 +199,8 @@ namespace TeamPulse.Api.Controllers
                 await _db.SaveChangesAsync();
             }
 
-            return Ok(ToDto(task));
+            var updated = await _taskRepo.GetWithAssigneeAsync(id);
+            return Ok(ToDto(updated!));
         }
 
         [HttpDelete("{id}")]
@@ -182,29 +211,51 @@ namespace TeamPulse.Api.Controllers
 
             var task = await _taskRepo.GetByIdAsync(id);
             if (task is null) return NotFound();
+
+            // Prevent deleting a parent that still has subtasks
+            var hasSubtasks = await _db.Tasks.AnyAsync(t => t.ParentTaskId == id);
+            if (hasSubtasks)
+                return BadRequest(new { message = "Delete all subtasks before deleting the parent task." });
+
             await _taskRepo.SoftDeleteAsync(id);
             await _taskRepo.SaveChangesAsync();
             return NoContent();
         }
 
         private static TaskDto ToDto(TaskItem t) => new(
-            t.Id, t.Title, t.Description,
-            t.AssigneeId, t.Priority, t.Status,
-            t.DueDate, t.ClientContact, t.BillingDetails,
-            t.PaymentStatus, t.Remarks, t.CreatedByUserId, t.CompletedAt);
+            t.Id,
+            t.Number,
+            t.Title,
+            t.Description,
+            t.AssigneeId,
+            t.Priority,
+            t.Status,
+            t.DueDate,
+            t.ClientContact,
+            t.CustomerId,
+            t.Customer?.Name,
+            t.BillingDetails,
+            t.PaymentStatus,
+            t.Remarks,
+            t.CreatedByUserId,
+            t.CompletedAt,
+            t.ParentTaskId,
+            t.SubTasks.Count(s => !s.IsDeleted));
 
         private static TaskItem FromRequest(TaskRequest r) => new()
         {
-            Title           = r.Title       ?? string.Empty,
-            Description     = r.Description ?? string.Empty,
-            AssigneeId      = r.Assignee    ?? string.Empty,
-            Status          = r.Status      ?? "new",
-            Priority        = r.Priority    ?? "Medium",
+            Title           = r.Title        ?? string.Empty,
+            Description     = r.Description  ?? string.Empty,
+            AssigneeId      = r.Assignee     ?? string.Empty,
+            Status          = r.Status       ?? "new",
+            Priority        = r.Priority     ?? "Medium",
             DueDate         = r.Deadline,
             ClientContact   = r.ClientContact,
+            CustomerId      = string.IsNullOrEmpty(r.CustomerId) ? null : r.CustomerId,
             BillingDetails  = r.Billing,
             PaymentStatus   = r.PaymentStatus ?? "N/A",
-            Remarks         = r.Remarks
+            Remarks         = r.Remarks,
+            ParentTaskId    = string.IsNullOrEmpty(r.ParentTaskId) ? null : r.ParentTaskId,
         };
     }
 }

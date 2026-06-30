@@ -8,18 +8,23 @@ export type KanbanStage =
 
 export interface Task {
   id: string;
+  number: number;           // per-tenant sequential number
   title: string;
   description: string;
-  assignee: string; // userId
+  assignee: string;         // userId
   priority: 'Low' | 'Medium' | 'High' | 'Urgent';
-  status: string;  // KanbanStage | 'pending' (legacy)
+  status: string;           // KanbanStage | 'pending' (legacy)
   deadline?: string;
   clientContact?: string;
+  customerId?: string;
+  customerName?: string;
   billing?: string;
   paymentStatus?: 'N/A' | 'Pending' | 'Partly Paid' | 'Paid';
   remarks?: string;
   createdBy?: string;
   completedAt?: string;
+  parentTaskId?: string;
+  subTaskCount: number;
 }
 
 export interface TaskRequest {
@@ -30,9 +35,11 @@ export interface TaskRequest {
   status?: string;
   deadline?: string;
   clientContact?: string;
+  customerId?: string;
   billing?: string;
   paymentStatus?: string;
   remarks?: string;
+  parentTaskId?: string;
 }
 
 export const PRIORITY_ORDER: Record<string, number> = {

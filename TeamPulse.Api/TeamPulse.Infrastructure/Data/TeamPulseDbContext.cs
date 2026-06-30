@@ -18,6 +18,7 @@ namespace TeamPulse.Infrastructure.Data
         public DbSet<Tenant> Tenants { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<TaskItem> Tasks { get; set; }
+        public DbSet<Customer> Customers { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<TaskDocument> TaskDocuments { get; set; }
@@ -37,8 +38,18 @@ namespace TeamPulse.Infrastructure.Data
             modelBuilder.Entity<User>().HasQueryFilter(u =>
                 !u.IsDeleted && (_tenantContext.TenantId == null || u.CompanyId == _tenantContext.TenantId));
 
+            modelBuilder.Entity<Customer>().HasQueryFilter(c =>
+                !c.IsDeleted && (_tenantContext.TenantId == null || c.CompanyId == _tenantContext.TenantId));
+
             modelBuilder.Entity<TaskItem>().HasQueryFilter(t =>
                 !t.IsDeleted && (_tenantContext.TenantId == null || t.CompanyId == _tenantContext.TenantId));
+
+            // Self-referencing FK for subtasks — explicit so EF doesn't try cascade delete loops
+            modelBuilder.Entity<TaskItem>()
+                .HasMany(t => t.SubTasks)
+                .WithOne(t => t.ParentTask)
+                .HasForeignKey(t => t.ParentTaskId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<TaskDocument>().HasQueryFilter(d =>
                 !d.IsDeleted && (_tenantContext.TenantId == null || d.CompanyId == _tenantContext.TenantId));

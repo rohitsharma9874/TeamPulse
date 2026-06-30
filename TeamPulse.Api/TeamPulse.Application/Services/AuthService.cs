@@ -36,6 +36,9 @@ namespace TeamPulse.Application.Services
             if (await _users.UsernameExistsAsync(request.Username))
                 throw new InvalidOperationException($"Username '{request.Username}' is already taken.");
 
+            if (!string.IsNullOrWhiteSpace(request.Email) && await _users.EmailExistsAsync(request.Email))
+                throw new InvalidOperationException($"Email '{request.Email}' is already registered.");
+
             var user = new User
             {
                 Username = request.Username,

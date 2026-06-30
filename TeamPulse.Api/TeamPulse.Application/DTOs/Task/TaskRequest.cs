@@ -8,7 +8,9 @@ namespace TeamPulse.Application.DTOs.Task
         string? Status,
         DateTime? Deadline,
         string? ClientContact,
+        string? CustomerId,
         string? Billing,
         string? PaymentStatus,
-        string? Remarks);
+        string? Remarks,
+        string? ParentTaskId);
 }

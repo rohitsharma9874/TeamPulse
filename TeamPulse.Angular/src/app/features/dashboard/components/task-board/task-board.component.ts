@@ -4,7 +4,7 @@ import { Task } from '../../../../core/models/task.model';
 import { User } from '../../../../core/models/user.model';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 
-export type KanbanStatus =
+export type BoardStatus =
   | 'new'
   | 'refinement'
   | 'ready'
@@ -13,14 +13,14 @@ export type KanbanStatus =
   | 'complete';
 
 interface Column {
-  status: KanbanStatus;
+  status: BoardStatus;
   label: string;
   accent: string;
   icon: string;
 }
 
 // Backward compatibility map for old stage names
-const STATUS_COMPAT: Record<string, KanbanStatus> = {
+const STATUS_COMPAT: Record<string, BoardStatus> = {
   pending:                 'new',
   open:                    'new',
   'requirement-gathering': 'refinement',
@@ -29,37 +29,37 @@ const STATUS_COMPAT: Record<string, KanbanStatus> = {
   completed:               'complete',
 };
 
-const normalise = (s: string): KanbanStatus =>
-  (STATUS_COMPAT[s] ?? s) as KanbanStatus;
+const normalise = (s: string): BoardStatus =>
+  (STATUS_COMPAT[s] ?? s) as BoardStatus;
 
 @Component({
   standalone: true,
-  selector: 'app-kanban',
+  selector: 'app-task-board',
   imports: [CommonModule, IconComponent],
-  templateUrl: './kanban.component.html',
-  styleUrls: ['./kanban.component.scss'],
+  templateUrl: './task-board.component.html',
+  styleUrls: ['./task-board.component.scss'],
 })
-export class KanbanComponent {
+export class TaskBoardComponent {
   @Input() tasks: Task[] = [];
   @Input() users: User[] = [];
   @Input() canEdit = true;
   @Input() canDelete = true;
   /** When non-null, only these statuses are shown as columns. Null = show all. */
-  @Input() visibleStatuses: KanbanStatus[] | null = null;
+  @Input() visibleStatuses: BoardStatus[] | null = null;
 
   @Output() viewTask    = new EventEmitter<Task>();
   @Output() editTask    = new EventEmitter<Task>();
   @Output() deleteTask  = new EventEmitter<string>();
-  @Output() moveTask    = new EventEmitter<{ taskId: string; status: KanbanStatus }>();
-  @Output() addToColumn = new EventEmitter<KanbanStatus>();
+  @Output() moveTask    = new EventEmitter<{ taskId: string; status: BoardStatus }>();
+  @Output() addToColumn = new EventEmitter<BoardStatus>();
 
   private readonly allColumns: Column[] = [
-    { status: 'new',        label: 'New',        accent: '#6b7280', icon: 'plus' },
-    { status: 'refinement', label: 'Refinement', accent: '#8b5cf6', icon: 'search' },
-    { status: 'ready',      label: 'Ready',      accent: '#3b82f6', icon: 'check' },
-    { status: 'in-progress',label: 'In Progress',accent: '#f59e0b', icon: 'activity' },
-    { status: 'review',     label: 'Review',     accent: '#ec4899', icon: 'eye' },
-    { status: 'complete',   label: 'Complete',   accent: '#10b981', icon: 'check-circle' },
+    { status: 'new',         label: 'New',         accent: '#6b7280', icon: 'plus'         },
+    { status: 'refinement',  label: 'Refinement',  accent: '#8b5cf6', icon: 'search'       },
+    { status: 'ready',       label: 'Ready',       accent: '#3b82f6', icon: 'check'        },
+    { status: 'in-progress', label: 'In Progress', accent: '#f59e0b', icon: 'activity'     },
+    { status: 'review',      label: 'Review',      accent: '#ec4899', icon: 'eye'          },
+    { status: 'complete',    label: 'Complete',    accent: '#10b981', icon: 'check-circle' },
   ];
 
   get columns(): Column[] {
@@ -68,10 +68,10 @@ export class KanbanComponent {
   }
 
   draggingId: string | null = null;
-  dragOverStatus: KanbanStatus | null = null;
+  dragOverStatus: BoardStatus | null = null;
 
-  getColumnTasks(status: KanbanStatus): Task[] {
-    return this.tasks.filter(t => normalise(t.status) === status);
+  getColumnTasks(status: BoardStatus): Task[] {
+    return this.tasks.filter(t => normalise(t.status) === status && !t.parentTaskId);
   }
 
   getUserName(userId: string): string {
@@ -84,7 +84,11 @@ export class KanbanComponent {
   }
 
   isOverdue(task: Task): boolean {
-    return !!(task.deadline && new Date(task.deadline) < new Date() && task.status !== 'completed');
+    return !!(task.deadline && new Date(task.deadline) < new Date() && task.status !== 'complete');
+  }
+
+  taskRef(task: Task): string {
+    return task.number ? `#${task.number}` : '';
   }
 
   // ── Drag & Drop ──────────────────────────────────────────
@@ -100,14 +104,14 @@ export class KanbanComponent {
     (event.target as HTMLElement).classList.remove('dragging');
   }
 
-  onDragOver(event: DragEvent, status: KanbanStatus): void {
+  onDragOver(event: DragEvent, status: BoardStatus): void {
     event.preventDefault();
     this.dragOverStatus = status;
   }
 
   onDragLeave(): void { this.dragOverStatus = null; }
 
-  onDrop(event: DragEvent, status: KanbanStatus): void {
+  onDrop(event: DragEvent, status: BoardStatus): void {
     event.preventDefault();
     const taskId = event.dataTransfer?.getData('text/plain') ?? this.draggingId;
     this.dragOverStatus = null;

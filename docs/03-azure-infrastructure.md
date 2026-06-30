@@ -12,8 +12,9 @@
 | SQL Server | `teampulse-sqlsrv` | Azure SQL Server | Central India |
 | DB (Production) | `TeamPulseDb` | Azure SQL (Basic) | Central India |
 | DB (Staging) | `TeamPulseDbStaging` | Azure SQL (Basic) | Central India |
-| Storage (Production) | `teampulsewebks` | StorageV2 (LRS) | East US |
-| Storage (Staging) | `teampulsewebstg` | StorageV2 (LRS) | East US |
+| Storage (Angular Prod) | `teampulsewebks` | StorageV2 (LRS) | East US |
+| Storage (Angular Staging) | `teampulsewebstg` | StorageV2 (LRS) | East US |
+| Storage (File Uploads) | `teampulsestoreks` | StorageV2 (LRS) | East US |
 
 ---
 
@@ -198,7 +199,7 @@ az containerapp show `
   -o table
 ```
 
-All 9 variables should appear: `ConnectionStrings__DefaultConnection`, `Jwt__Secret`, `Jwt__Issuer`, `Jwt__Audience`, `AllowedOrigins`, `App__Url`, `Owner__Username`, `Owner__Password`, `PlatformAdmin__Username`, `PlatformAdmin__Password`.
+All expected variables should appear: `ConnectionStrings__DefaultConnection`, `Jwt__Secret`, `Jwt__Issuer`, `Jwt__Audience`, `AllowedOrigins`, `App__Url`, `Owner__Username`, `Owner__Password`, `PlatformAdmin__Username`, `PlatformAdmin__Password`, `Storage__UploadsPath`, plus any SMTP vars.
 
 ### Step 4 — Update a specific environment variable
 
@@ -337,6 +338,117 @@ Staging Angular URL: `https://teampulsewebstg.z13.web.core.windows.net`
 
 ---
 
+## File Upload Storage (Azure File Share)
+
+Container App containers are ephemeral — uploaded files would be lost on redeploy without persistent storage. Azure File Share is mounted as a volume so uploads survive restarts and redeployments.
+
+### Step 1 — Create the storage account
+
+```bash
+az storage account create \
+  --name teampulsestoreks \
+  --resource-group teampulse-rg \
+  --location eastus \
+  --sku Standard_LRS \
+  --kind StorageV2
+```
+
+### Step 2 — Get the storage key
+
+```bash
+az storage account keys list \
+  --account-name teampulsestoreks \
+  --resource-group teampulse-rg \
+  --query "[0].value" -o tsv
+```
+
+### Step 3 — Create file shares
+
+```bash
+# Staging share
+az storage share-rm create \
+  --storage-account teampulsestoreks \
+  --name tp-staging-uploads \
+  --resource-group teampulse-rg \
+  --quota 100
+
+# Production share
+az storage share-rm create \
+  --storage-account teampulsestoreks \
+  --name tp-prod-uploads \
+  --resource-group teampulse-rg \
+  --quota 100
+```
+
+### Step 4 — Link shares to the Container Apps environment
+
+```bash
+STORAGE_KEY="<key-from-step-2>"
+
+# Staging
+az containerapp env storage set \
+  --name teampulse-env \
+  --resource-group teampulse-rg \
+  --storage-name teampulse-uploads-staging \
+  --azure-file-account-name teampulsestoreks \
+  --azure-file-account-key "$STORAGE_KEY" \
+  --azure-file-share-name tp-staging-uploads \
+  --access-mode ReadWrite
+
+# Production
+az containerapp env storage set \
+  --name teampulse-env \
+  --resource-group teampulse-rg \
+  --storage-name teampulse-uploads-prod \
+  --azure-file-account-name teampulsestoreks \
+  --azure-file-account-key "$STORAGE_KEY" \
+  --azure-file-share-name tp-prod-uploads \
+  --access-mode ReadWrite
+```
+
+### Step 5 — Apply volume mount via YAML
+
+Export the current YAML, add the volume and mount, then apply:
+
+```bash
+# Export
+az containerapp show --name teampulse-api-staging --resource-group teampulse-rg -o yaml > staging-app.yaml
+```
+
+Edit `staging-app.yaml` — make three changes:
+
+1. Under the container's `env:` list, add:
+```yaml
+      - name: Storage__UploadsPath
+        value: /mnt/uploads
+```
+
+2. Under `resources:`, add `volumeMounts:`:
+```yaml
+      volumeMounts:
+      - mountPath: /mnt/uploads
+        volumeName: uploads-vol
+```
+
+3. Replace `volumes: []` (or `volumes: null`) with:
+```yaml
+    volumes:
+    - name: uploads-vol
+      storageType: AzureFile
+      storageName: tp-staging-uploads
+```
+
+Apply:
+```bash
+az containerapp update --name teampulse-api-staging --resource-group teampulse-rg --yaml staging-app.yaml
+```
+
+Repeat for production (`teampulse-api` / `tp-prod-uploads`).
+
+> The `Storage__UploadsPath` env var maps to `Storage:UploadsPath` in .NET config (double-underscore convention). Both `AttachmentController` and `MemberDocumentController` read this to resolve the upload directory.
+
+---
+
 ## Service Principal for GitHub Actions
 
 ```bash
@@ -367,17 +479,27 @@ Use this checklist when setting up from scratch to verify nothing is missed.
 - [ ] Database `TeamPulseDbStaging` created (staging)
 
 ### Container Apps
-- [ ] `teampulse-api` created with all 9 env vars (incl. App__Url, PlatformAdmin__Username/Password)
-- [ ] `teampulse-api-staging` created with all 9 env vars
+- [ ] `teampulse-api` created with all env vars (incl. App__Url, PlatformAdmin__Username/Password, Storage__UploadsPath)
+- [ ] `teampulse-api-staging` created with all env vars
 - [ ] ACR credentials attached to `teampulse-api` via `az containerapp registry set`
 - [ ] ACR credentials attached to `teampulse-api-staging` via `az containerapp registry set`
 - [ ] Health probe configured on `teampulse-api` (HTTP `/api/health` port 8080)
 - [ ] Health probe configured on `teampulse-api-staging` (HTTP `/api/health` port 8080)
 - [ ] Both revisions show `Healthy` in `az containerapp revision list`
+- [ ] Volume mount (`/mnt/uploads` → `uploads-vol`) configured on both Container Apps via YAML
 
-### Storage Accounts
+### Storage Accounts (Angular)
 - [ ] `teampulsewebks` created with static website enabled (index: `index.html`, 404: `index.html`)
 - [ ] `teampulsewebstg` created with static website enabled (index: `index.html`, 404: `index.html`)
+
+### File Upload Storage (Azure File Share)
+- [ ] Storage account `teampulsestoreks` created
+- [ ] File share `tp-staging-uploads` created (quota: 100 GiB)
+- [ ] File share `tp-prod-uploads` created (quota: 100 GiB)
+- [ ] `teampulse-uploads-staging` linked to `teampulse-env` pointing at `tp-staging-uploads`
+- [ ] `teampulse-uploads-prod` linked to `teampulse-env` pointing at `tp-prod-uploads`
+- [ ] Volume mount applied to `teampulse-api-staging` (YAML update)
+- [ ] Volume mount applied to `teampulse-api` (YAML update)
 
 ### GitHub
 - [ ] Service principal created and saved as `AZURE_CREDENTIALS` secret
