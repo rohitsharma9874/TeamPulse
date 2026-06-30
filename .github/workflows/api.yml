@@ -16,6 +16,10 @@ env:
   ACR_LOGIN_SERVER: teampulseacrks.azurecr.io
   RESOURCE_GROUP: teampulse-rg
   UPLOADS_MOUNT_PATH: /mnt/uploads
+  SMTP_HOST: smtp.gmail.com
+  SMTP_PORT: "587"
+  SMTP_ENABLE_SSL: "true"
+  SMTP_FROM_NAME: TeamPulse
 
 jobs:
 
@@ -77,7 +81,16 @@ jobs:
             --name teampulse-api-staging \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --image ${{ env.ACR_LOGIN_SERVER }}/teampulse-api:staging-${{ github.sha }} \
-            --set-env-vars "Storage__UploadsPath=${{ env.UPLOADS_MOUNT_PATH }}"
+            --set-env-vars \
+              "Storage__UploadsPath=${{ env.UPLOADS_MOUNT_PATH }}" \
+              "Smtp__Host=${{ env.SMTP_HOST }}" \
+              "Smtp__Port=${{ env.SMTP_PORT }}" \
+              "Smtp__EnableSsl=${{ env.SMTP_ENABLE_SSL }}" \
+              "Smtp__FromName=${{ env.SMTP_FROM_NAME }}" \
+              "Smtp__Username=${{ secrets.SMTP_USERNAME }}" \
+              "Smtp__Password=${{ secrets.SMTP_PASSWORD }}" \
+              "Smtp__From=${{ secrets.SMTP_FROM }}" \
+              "App__Url=${{ secrets.APP_URL_STAGING }}"
 
   # ── Deploy to Production (main push, requires manual approval) ────────────
   deploy-production:
@@ -122,4 +135,13 @@ jobs:
             --name teampulse-api \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --image ${{ env.ACR_LOGIN_SERVER }}/teampulse-api:${{ github.sha }} \
-            --set-env-vars "Storage__UploadsPath=${{ env.UPLOADS_MOUNT_PATH }}"
+            --set-env-vars \
+              "Storage__UploadsPath=${{ env.UPLOADS_MOUNT_PATH }}" \
+              "Smtp__Host=${{ env.SMTP_HOST }}" \
+              "Smtp__Port=${{ env.SMTP_PORT }}" \
+              "Smtp__EnableSsl=${{ env.SMTP_ENABLE_SSL }}" \
+              "Smtp__FromName=${{ env.SMTP_FROM_NAME }}" \
+              "Smtp__Username=${{ secrets.SMTP_USERNAME }}" \
+              "Smtp__Password=${{ secrets.SMTP_PASSWORD }}" \
+              "Smtp__From=${{ secrets.SMTP_FROM }}" \
+              "App__Url=${{ secrets.APP_URL_PROD }}"

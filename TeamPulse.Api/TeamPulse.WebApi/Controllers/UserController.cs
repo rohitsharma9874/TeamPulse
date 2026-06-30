@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using TeamPulse.Application.DTOs.Auth;
 using TeamPulse.Application.DTOs.User;
 using TeamPulse.Application.Interfaces;
@@ -19,19 +20,22 @@ namespace TeamPulse.Api.Controllers
         private readonly IPasswordHasher _hasher;
         private readonly IEmailService _emailService;
         private readonly IConfiguration _config;
+        private readonly ILogger<UserController> _logger;
 
         public UserController(
             IUserRepository userRepo,
             IAuthService authService,
             IPasswordHasher hasher,
             IEmailService emailService,
-            IConfiguration config)
+            IConfiguration config,
+            ILogger<UserController> logger)
         {
             _userRepo     = userRepo;
             _authService  = authService;
             _hasher       = hasher;
             _emailService = emailService;
             _config       = config;
+            _logger       = logger;
         }
 
         private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -86,6 +90,7 @@ namespace TeamPulse.Api.Controllers
                     var capturedUsername = user.Username;
                     var capturedUserId   = user.Id;
                     var appUrl           = _config["App:Url"] ?? "http://localhost:4200";
+                    var capturedLogger = _logger;
                     _ = Task.Run(async () =>
                     {
                         try
@@ -93,7 +98,10 @@ namespace TeamPulse.Api.Controllers
                             var link = await _authService.CreateSetPasswordLinkAsync(capturedUserId, appUrl);
                             await _emailService.SendWelcomeEmailAsync(capturedEmail, capturedName, capturedCompany, capturedUsername, link);
                         }
-                        catch { /* email failure must not affect the created user response */ }
+                        catch (Exception ex)
+                        {
+                            capturedLogger.LogError(ex, "Welcome email failed for user {UserId} ({Email})", capturedUserId, capturedEmail);
+                        }
                     });
                 }
 

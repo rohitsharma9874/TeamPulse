@@ -128,6 +128,7 @@ namespace TeamPulse.Infrastructure.Services
             {
                 Credentials = new NetworkCredential(user, pass),
                 EnableSsl   = enableSsl,
+                Timeout     = 10_000,
             };
 
             var message = new MailMessage
