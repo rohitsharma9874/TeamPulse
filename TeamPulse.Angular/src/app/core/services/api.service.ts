@@ -59,6 +59,10 @@ export class ApiService {
     return this.http.delete<void>(`${this.base}/user/${id}`);
   }
 
+  checkUsername(username: string): Observable<{ available: boolean }> {
+    return this.http.get<{ available: boolean }>(`${this.base}/user/check-username/${encodeURIComponent(username)}`);
+  }
+
   // Tasks
   getTasks(): Observable<Task[]> {
     return this.http.get<Task[]>(`${this.base}/task`);

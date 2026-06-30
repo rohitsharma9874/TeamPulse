@@ -190,6 +190,52 @@
   flex-shrink: 0;
 }
 
+// ── Username availability indicator ──────────────────────
+.username-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  input.ok { border-color: #16a34a; }
+}
+
+.username-status {
+  font-size: 0.72rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 1rem;
+
+  .status-checking {
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    animation: tp-spin 0.8s linear infinite;
+
+    @keyframes tp-spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+  }
+
+  .status-available {
+    color: #16a34a;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .status-taken {
+    color: #dc2626;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+}
+
 // ── Document styles ───────────────────────────────────────
 .sub-label {
   font-size: 0.72rem;

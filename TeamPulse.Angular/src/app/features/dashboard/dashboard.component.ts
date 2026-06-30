@@ -862,8 +862,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       if (!this.subtaskCache.has(task.id)) {
         this.loadingSubtask.add(task.id);
         this.api.getSubtasks(task.id).subscribe({
-          next: subs => { this.subtaskCache.set(task.id, subs); this.loadingSubtask.delete(task.id); },
-          error: ()  => { this.loadingSubtask.delete(task.id); },
+          next: subs => { this.subtaskCache.set(task.id, subs); this.loadingSubtask.delete(task.id); this.cdr.detectChanges(); },
+          error: ()  => { this.loadingSubtask.delete(task.id); this.cdr.detectChanges(); },
         });
       }
     }
@@ -931,8 +931,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
         files.forEach(file => this.api.uploadAttachment(saved.id, file).subscribe());
         this.savingTask = false;
         this.closeTaskModal();
+        this.cdr.detectChanges();
       },
-      error: () => { this.savingTask = false; },
+      error: () => {
+        this.savingTask = false;
+        this.cdr.detectChanges();
+      },
     });
   }
 
@@ -945,6 +949,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           entityType: 'Task', entityId: saved.id,
           action: `Moved to ${event.status}`, target: saved.title,
         }).subscribe();
+        this.cdr.detectChanges();
       },
     });
   }
@@ -962,6 +967,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.tasks = this.tasks.filter(t => t.id !== id);
         this.recompute();
         if (task) this.api.logActivity({ entityType: 'Task', entityId: id, action: 'Deleted Task', target: task.title }).subscribe();
+        this.cdr.detectChanges();
       },
     });
   }
@@ -1070,10 +1076,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.api.logActivity({ entityType: 'User', entityId: updated.id, action: 'Updated Team Member', target: updated.name }).subscribe();
           this.savingUser = false;
           this.closeUserModal();
+          this.cdr.detectChanges();
         },
         error: (err) => {
           this.savingUser = false;
           this.userModalError = err?.error?.message ?? 'Failed to update member.';
+          this.cdr.detectChanges();
         },
       });
     } else {
@@ -1112,6 +1120,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.users = this.users.filter(u => u.id !== id);
         this.recompute();
         if (user) this.api.logActivity({ entityType: 'User', entityId: id, action: 'Removed Team Member', target: user.name }).subscribe();
+        this.cdr.detectChanges();
       },
     });
   }
@@ -1128,8 +1137,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.recompute();
         this.savingProfile = false;
         this.profileModalVisible = false;
+        this.cdr.detectChanges();
       },
-      error: () => { this.savingProfile = false; },
+      error: () => {
+        this.savingProfile = false;
+        this.cdr.detectChanges();
+      },
     });
   }
 
@@ -1328,6 +1341,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.customers      = this.customers.map(c => c.id === updated.id ? updated : c);
           this.savingCustomer = false;
           this.closeCustomerModal();
+          this.cdr.detectChanges();
         },
         error: () => {
           this.customerError  = 'Failed to update customer.';
@@ -1341,6 +1355,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.customers      = [created, ...this.customers];
           this.savingCustomer = false;
           this.closeCustomerModal();
+          this.cdr.detectChanges();
         },
         error: () => {
           this.customerError  = 'Failed to create customer.';

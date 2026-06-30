@@ -109,6 +109,16 @@ namespace TeamPulse.Api.Controllers
             }
         }
 
+        [HttpGet("check-username/{username}")]
+        public async Task<IActionResult> CheckUsername(string username)
+        {
+            if (string.IsNullOrWhiteSpace(username) || username.Length < 3)
+                return Ok(new { available = false });
+
+            var available = !await _userRepo.UsernameExistsAsync(username.Trim().ToLowerInvariant());
+            return Ok(new { available });
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(string id)
         {
@@ -117,6 +127,13 @@ namespace TeamPulse.Api.Controllers
 
             var user = await _userRepo.GetByIdAsync(id);
             if (user is null) return NotFound();
+
+            // Mangle username and email so those values can be reused after deletion
+            var ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            user.Username = $"{user.Username}__deleted__{ts}";
+            if (!string.IsNullOrWhiteSpace(user.Email) && !user.Email.EndsWith("@teampulse.local"))
+                user.Email = $"{user.Email}__deleted__{ts}";
+            await _userRepo.UpdateAsync(user);
 
             await _userRepo.SoftDeleteAsync(id);
             await _userRepo.SaveChangesAsync();

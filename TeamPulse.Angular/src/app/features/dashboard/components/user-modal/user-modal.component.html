@@ -37,7 +37,23 @@
         <div class="form-row single">
           <div class="field">
             <label>Username <span class="req" *ngIf="!isEdit">*</span></label>
-            <input formControlName="username" type="text" placeholder="rahul.sharma" [class.err]="isInvalid('username')" />
+            <div class="username-wrap">
+              <input formControlName="username" type="text" placeholder="rahul.sharma"
+                [class.err]="isInvalid('username') || usernameStatus === 'taken'"
+                [class.ok]="usernameStatus === 'available'"
+                (input)="onUsernameInput($event)" />
+              <span class="username-status" *ngIf="!isEdit">
+                <span *ngIf="usernameStatus === 'checking'" class="status-checking">
+                  <tp-icon name="loader" [size]="13"></tp-icon>
+                </span>
+                <span *ngIf="usernameStatus === 'available'" class="status-available">
+                  <tp-icon name="check-circle" [size]="13"></tp-icon> Available
+                </span>
+                <span *ngIf="usernameStatus === 'taken'" class="status-taken">
+                  <tp-icon name="x-circle" [size]="13"></tp-icon> Already taken
+                </span>
+              </span>
+            </div>
             <span class="err-msg" *ngIf="isInvalid('username')">Min 3 characters</span>
           </div>
         </div>

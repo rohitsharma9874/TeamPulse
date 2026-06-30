@@ -1,6 +1,8 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import {
   User, CreateUserRequest, UpdateProfileRequest,
   ROLE_GROUPS, ROLE_HIERARCHY, RoleGroup, ROLE_LABELS,
@@ -26,7 +28,7 @@ type ModalTab = 'account' | 'work' | 'address' | 'emergency' | 'documents';
   templateUrl: './user-modal.component.html',
   styleUrls: ['./user-modal.component.scss'],
 })
-export class UserModalComponent implements OnChanges {
+export class UserModalComponent implements OnChanges, OnDestroy {
   @Input() visible = false;
   @Input() editingUser: User | null = null;   // null = add mode
   @Input() allUsers: User[] = [];             // for Reports-To dropdown
@@ -40,6 +42,11 @@ export class UserModalComponent implements OnChanges {
   form!: FormGroup;
   docError = false;
   activeTab: ModalTab = 'account';
+
+  // Username availability check
+  usernameStatus: 'idle' | 'checking' | 'available' | 'taken' = 'idle';
+  private usernameInput$ = new Subject<string>();
+  private usernameSub?: Subscription;
 
   // Member documents (edit mode)
   existingDocs: MemberDocument[] = [];
@@ -65,6 +72,33 @@ export class UserModalComponent implements OnChanges {
 
   constructor(private fb: FormBuilder, private api: ApiService, private cdr: ChangeDetectorRef) {
     this.buildForm();
+    this.usernameSub = this.usernameInput$.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      switchMap(username => {
+        if (!username || username.length < 3) {
+          this.usernameStatus = 'idle';
+          this.cdr.detectChanges();
+          return [];
+        }
+        this.usernameStatus = 'checking';
+        this.cdr.detectChanges();
+        return this.api.checkUsername(username);
+      }),
+    ).subscribe({
+      next: (res: { available: boolean }) => {
+        this.usernameStatus = res.available ? 'available' : 'taken';
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.usernameStatus = 'idle';
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.usernameSub?.unsubscribe();
   }
 
   private buildForm(): void {
@@ -103,6 +137,7 @@ export class UserModalComponent implements OnChanges {
     this.pendingFiles = [];
     this.existingDocs = [];
     this.docError = false;
+    this.usernameStatus = 'idle';
 
     if (this.isEdit && this.editingUser) {
       const u = this.editingUser;
@@ -160,6 +195,15 @@ export class UserModalComponent implements OnChanges {
     return this.allUsers
       .filter(u => (ROLE_HIERARCHY[u.role] ?? 9) < myRank && u.id !== this.editingUser?.id)
       .sort((a, b) => (ROLE_HIERARCHY[a.role] ?? 9) - (ROLE_HIERARCHY[b.role] ?? 9));
+  }
+
+  onUsernameInput(event: Event): void {
+    const val = (event.target as HTMLInputElement).value.trim().toLowerCase();
+    this.usernameInput$.next(val);
+  }
+
+  get usernameBlocked(): boolean {
+    return !this.isEdit && (this.usernameStatus === 'checking' || this.usernameStatus === 'taken');
   }
 
   getRoleLabel(role: string): string { return ROLE_LABELS[role] ?? role; }
@@ -249,7 +293,7 @@ export class UserModalComponent implements OnChanges {
       this.docError = true;
       this.activeTab = 'documents';
     }
-    if (this.form.invalid || !hasDoc) return;
+    if (this.form.invalid || !hasDoc || this.usernameBlocked) return;
     this.docError = false;
     const v = this.form.getRawValue();
 
