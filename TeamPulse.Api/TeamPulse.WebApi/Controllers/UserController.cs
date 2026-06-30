@@ -2,11 +2,13 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TeamPulse.Application.DTOs.Auth;
 using TeamPulse.Application.DTOs.User;
 using TeamPulse.Application.Interfaces;
+using TeamPulse.Domain.Entities;
+using TeamPulse.Infrastructure.Data;
 
 namespace TeamPulse.Api.Controllers
 {
@@ -21,6 +23,7 @@ namespace TeamPulse.Api.Controllers
         private readonly IEmailService _emailService;
         private readonly IConfiguration _config;
         private readonly ILogger<UserController> _logger;
+        private readonly IServiceScopeFactory _scopeFactory;
 
         public UserController(
             IUserRepository userRepo,
@@ -28,7 +31,8 @@ namespace TeamPulse.Api.Controllers
             IPasswordHasher hasher,
             IEmailService emailService,
             IConfiguration config,
-            ILogger<UserController> logger)
+            ILogger<UserController> logger,
+            IServiceScopeFactory scopeFactory)
         {
             _userRepo     = userRepo;
             _authService  = authService;
@@ -36,6 +40,7 @@ namespace TeamPulse.Api.Controllers
             _emailService = emailService;
             _config       = config;
             _logger       = logger;
+            _scopeFactory = scopeFactory;
         }
 
         private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -81,7 +86,8 @@ namespace TeamPulse.Api.Controllers
                 await _userRepo.UpdateAsync(user);
                 await _userRepo.SaveChangesAsync();
 
-                // Send welcome email — truly fire-and-forget so SMTP never blocks the API response
+                // Fire-and-forget welcome email using its own DI scope so the
+                // request scope disposal never kills the DbContext mid-flight.
                 if (!string.IsNullOrWhiteSpace(user.Email) && !user.Email.EndsWith("@teampulse.local"))
                 {
                     var capturedEmail    = user.Email;
@@ -90,18 +96,37 @@ namespace TeamPulse.Api.Controllers
                     var capturedUsername = user.Username;
                     var capturedUserId   = user.Id;
                     var appUrl           = _config["App:Url"] ?? "http://localhost:4200";
-                    var capturedLogger = _logger;
+                    var scopeFactory     = _scopeFactory;
+                    var logger           = _logger;
                     _ = Task.Run(async () =>
                     {
+                        using var scope       = scopeFactory.CreateScope();
+                        var authService       = scope.ServiceProvider.GetRequiredService<IAuthService>();
+                        var emailService      = scope.ServiceProvider.GetRequiredService<IEmailService>();
+                        var db                = scope.ServiceProvider.GetRequiredService<TeamPulseDbContext>();
+                        var log = new EmailLog
+                        {
+                            ToEmail   = capturedEmail,
+                            ToName    = capturedName,
+                            Type      = "welcome",
+                            UserId    = capturedUserId,
+                            CompanyId = capturedCompany,
+                        };
                         try
                         {
-                            var link = await _authService.CreateSetPasswordLinkAsync(capturedUserId, appUrl);
-                            await _emailService.SendWelcomeEmailAsync(capturedEmail, capturedName, capturedCompany, capturedUsername, link);
+                            var link = await authService.CreateSetPasswordLinkAsync(capturedUserId, appUrl);
+                            await emailService.SendWelcomeEmailAsync(capturedEmail, capturedName, capturedCompany, capturedUsername, link);
+                            log.Status = "sent";
+                            logger.LogInformation("Welcome email sent to {Email} for user {UserId}", capturedEmail, capturedUserId);
                         }
                         catch (Exception ex)
                         {
-                            capturedLogger.LogError(ex, "Welcome email failed for user {UserId} ({Email})", capturedUserId, capturedEmail);
+                            log.Status       = "failed";
+                            log.ErrorMessage = ex.Message;
+                            logger.LogError(ex, "Welcome email failed for user {UserId} ({Email})", capturedUserId, capturedEmail);
                         }
+                        db.EmailLogs.Add(log);
+                        await db.SaveChangesAsync();
                     });
                 }
 

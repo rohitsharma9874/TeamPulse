@@ -24,6 +24,7 @@ namespace TeamPulse.Infrastructure.Data
         public DbSet<TaskDocument> TaskDocuments { get; set; }
         public DbSet<MemberDocument> MemberDocuments { get; set; }
         public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
+        public DbSet<EmailLog> EmailLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
