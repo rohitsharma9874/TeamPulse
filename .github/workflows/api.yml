@@ -86,11 +86,7 @@ jobs:
               "Smtp__Host=${{ env.SMTP_HOST }}" \
               "Smtp__Port=${{ env.SMTP_PORT }}" \
               "Smtp__EnableSsl=${{ env.SMTP_ENABLE_SSL }}" \
-              "Smtp__FromName=${{ env.SMTP_FROM_NAME }}" \
-              "Smtp__Username=${{ secrets.SMTP_USERNAME }}" \
-              "Smtp__Password=${{ secrets.SMTP_PASSWORD }}" \
-              "Smtp__From=${{ secrets.SMTP_FROM }}" \
-              "App__Url=${{ secrets.APP_URL_STAGING }}"
+              "Smtp__FromName=${{ env.SMTP_FROM_NAME }}"
 
   # ── Deploy to Production (main push, requires manual approval) ────────────
   deploy-production:
@@ -140,8 +136,4 @@ jobs:
               "Smtp__Host=${{ env.SMTP_HOST }}" \
               "Smtp__Port=${{ env.SMTP_PORT }}" \
               "Smtp__EnableSsl=${{ env.SMTP_ENABLE_SSL }}" \
-              "Smtp__FromName=${{ env.SMTP_FROM_NAME }}" \
-              "Smtp__Username=${{ secrets.SMTP_USERNAME }}" \
-              "Smtp__Password=${{ secrets.SMTP_PASSWORD }}" \
-              "Smtp__From=${{ secrets.SMTP_FROM }}" \
-              "App__Url=${{ secrets.APP_URL_PROD }}"
+              "Smtp__FromName=${{ env.SMTP_FROM_NAME }}"

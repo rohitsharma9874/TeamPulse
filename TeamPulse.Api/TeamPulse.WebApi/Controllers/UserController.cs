@@ -125,8 +125,15 @@ namespace TeamPulse.Api.Controllers
                             log.ErrorMessage = ex.Message;
                             logger.LogError(ex, "Welcome email failed for user {UserId} ({Email})", capturedUserId, capturedEmail);
                         }
-                        db.EmailLogs.Add(log);
-                        await db.SaveChangesAsync();
+                        try
+                        {
+                            db.EmailLogs.Add(log);
+                            await db.SaveChangesAsync();
+                        }
+                        catch (Exception dbEx)
+                        {
+                            logger.LogError(dbEx, "Failed to write EmailLog for user {UserId}", capturedUserId);
+                        }
                     });
                 }
 

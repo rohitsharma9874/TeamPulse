@@ -70,9 +70,18 @@ var app = builder.Build();
 // Apply EF migrations and seed on startup
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<TeamPulseDbContext>();
-    await db.Database.MigrateAsync();
-    await SeedAsync(db, app.Configuration);
+    var db            = scope.ServiceProvider.GetRequiredService<TeamPulseDbContext>();
+    var startupLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        await db.Database.MigrateAsync();
+        await SeedAsync(db, app.Configuration);
+    }
+    catch (Exception ex)
+    {
+        startupLogger.LogCritical(ex, "Startup migration/seed failed — container will exit");
+        throw;
+    }
 }
 
 if (app.Environment.IsDevelopment())
