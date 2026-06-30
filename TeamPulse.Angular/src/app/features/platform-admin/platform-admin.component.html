@@ -11,7 +11,7 @@
     </div>
     <div class="pa-header-right">
       <span class="pa-user">{{ auth.currentUser?.name }}</span>
-      <button class="btn-outline" (click)="logout()">Sign out</button>
+      <button class="pa-btn-header pa-btn-signout" (click)="logout()">Sign out</button>
     </div>
   </header>
 
@@ -96,13 +96,7 @@
             <input formControlName="tagline" type="text" placeholder="Your Finance Partner" />
           </div>
         </div>
-        <div class="field full">
-          <label>Logo URL <span class="hint">optional</span></label>
-          <input formControlName="logoUrl" type="url" placeholder="https://..." />
-        </div>
-
         <p class="pa-section-label" style="margin-top:1rem">First Admin Account</p>
-        <p class="pa-hint">A welcome email with a link to set their password will be sent to the admin.</p>
         <div class="field-row">
           <div class="field">
             <label>Username</label>
@@ -119,6 +113,10 @@
           <p class="field-err" *ngIf="createForm.get('adminEmail')?.invalid && createForm.get('adminEmail')?.touched">
             Valid email address required
           </p>
+        </div>
+        <div class="field full">
+          <label>Initial Password <span class="hint">optional — if blank, admin must use Forgot Password to set their password</span></label>
+          <input formControlName="adminPassword" type="password" placeholder="Leave blank to send a set-password email" autocomplete="new-password" />
         </div>
       </div>
 
@@ -140,10 +138,6 @@
         <div class="field full">
           <label>Tagline</label>
           <input formControlName="tagline" type="text" />
-        </div>
-        <div class="field full">
-          <label>Logo URL <span class="hint">optional</span></label>
-          <input formControlName="logoUrl" type="url" placeholder="https://..." />
         </div>
       </div>
 

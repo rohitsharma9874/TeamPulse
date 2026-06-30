@@ -47,6 +47,7 @@ export class KanbanComponent {
   /** When non-null, only these statuses are shown as columns. Null = show all. */
   @Input() visibleStatuses: KanbanStatus[] | null = null;
 
+  @Output() viewTask    = new EventEmitter<Task>();
   @Output() editTask    = new EventEmitter<Task>();
   @Output() deleteTask  = new EventEmitter<string>();
   @Output() moveTask    = new EventEmitter<{ taskId: string; status: KanbanStatus }>();

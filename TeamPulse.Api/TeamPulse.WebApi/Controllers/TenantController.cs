@@ -84,10 +84,11 @@ namespace TeamPulse.Api.Controllers
             _db.Tenants.Add(tenant);
 
             // Create the first admin user for this tenant
+            var hasInitialPassword = !string.IsNullOrWhiteSpace(req.AdminPassword);
             var admin = new User
             {
                 Username     = req.AdminUsername,
-                PasswordHash = _hasher.Hash(GenerateRandomPassword()),
+                PasswordHash = _hasher.Hash(hasInitialPassword ? req.AdminPassword! : GenerateRandomPassword()),
                 Name         = req.AdminName,
                 Email        = req.AdminEmail,
                 Role         = "admin",
@@ -109,8 +110,9 @@ namespace TeamPulse.Api.Controllers
                 return Conflict(new { message = "A user with that username or email already exists in this tenant." });
             }
 
-            // Send welcome email — truly fire-and-forget so SMTP never blocks the API response
-            if (!string.IsNullOrWhiteSpace(admin.Email) && !admin.Email.EndsWith("@teampulse.local"))
+            // Only send the set-password welcome email when no initial password was provided.
+            // If an initial password was given, the admin can log in immediately.
+            if (!hasInitialPassword && !string.IsNullOrWhiteSpace(admin.Email) && !admin.Email.EndsWith("@teampulse.local"))
             {
                 var capturedEmail    = admin.Email;
                 var capturedName     = admin.Name;

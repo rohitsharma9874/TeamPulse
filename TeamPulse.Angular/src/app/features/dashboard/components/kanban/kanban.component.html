@@ -24,6 +24,7 @@
         class="task-card"
         [class.overdue]="isOverdue(task)"
         draggable="true"
+        (click)="viewTask.emit(task)"
         (dragstart)="onDragStart($event, task.id)"
         (dragend)="onDragEnd($event)">
 
@@ -46,7 +47,7 @@
               <img [src]="getUserPhoto(task.assignee)" [alt]="getUserName(task.assignee)" />
               <span>{{ getUserName(task.assignee) }}</span>
             </div>
-            <div class="card-actions">
+            <div class="card-actions" (click)="$event.stopPropagation()">
               <span class="deadline" *ngIf="task.deadline" [class.red]="isOverdue(task)">
                 <tp-icon name="calendar" [size]="11"></tp-icon> {{ task.deadline | date:'dd MMM' }}
               </span>

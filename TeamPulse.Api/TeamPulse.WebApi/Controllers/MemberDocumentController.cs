@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using TeamPulse.Application.DTOs.User;
 using TeamPulse.Application.Interfaces;
 using TeamPulse.Domain.Entities;
@@ -15,10 +16,15 @@ namespace TeamPulse.Api.Controllers
         private readonly IMemberDocumentRepository _docRepo;
         private readonly string _uploadsPath;
 
-        public MemberDocumentController(IMemberDocumentRepository docRepo, IWebHostEnvironment env)
+        public MemberDocumentController(IMemberDocumentRepository docRepo, IWebHostEnvironment env, IConfiguration config)
         {
-            _docRepo     = docRepo;
-            _uploadsPath = Path.Combine(env.ContentRootPath, "uploads", "members");
+            _docRepo = docRepo;
+            // Use Storage:UploadsPath from config when set (e.g. a mounted volume in Azure Container Apps).
+            // Falls back to <ContentRootPath>/uploads/members for local development.
+            var configured = config["Storage:UploadsPath"];
+            _uploadsPath = string.IsNullOrWhiteSpace(configured)
+                ? Path.Combine(env.ContentRootPath, "uploads", "members")
+                : Path.Combine(configured, "members");
             Directory.CreateDirectory(_uploadsPath);
         }
 

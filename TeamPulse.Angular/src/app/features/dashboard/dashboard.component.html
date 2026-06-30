@@ -396,7 +396,7 @@
               </div>
             </div>
             <div class="pulse-kpi" style="--pkpi-accent:#f59e0b">
-              <span class="pkpi-icon"><tp-icon name="dollar-sign" [size]="20"></tp-icon></span>
+              <span class="pkpi-icon"><tp-icon name="indian-rupee" [size]="20"></tp-icon></span>
               <div class="pkpi-body">
                 <span class="pkpi-val">{{ partlyPaidTasks.length }}</span>
                 <span class="pkpi-label">Partly Paid</span>
@@ -827,7 +827,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let task of pagedTasks; trackBy: trackById" [class.overdue-row]="isOverdue(task)">
+                <tr *ngFor="let task of pagedTasks; trackBy: trackById" [class.overdue-row]="isOverdue(task)" (click)="openEditTask(task)" style="cursor:pointer">
                   <td class="task-title">{{ task.title }}</td>
                   <td>{{ getUserName(task.assignee) }}</td>
                   <td><span class="badge badge-priority" [attr.data-priority]="task.priority">{{ task.priority }}</span></td>
@@ -837,7 +837,7 @@
                   <td *ngIf="perms.canViewBilling">
                     <span class="badge badge-payment" [attr.data-pay]="task.paymentStatus">{{ task.paymentStatus ?? 'N/A' }}</span>
                   </td>
-                  <td class="actions-cell">
+                  <td class="actions-cell" (click)="$event.stopPropagation()">
                     <button class="btn-icon" *ngIf="perms.canEditTask" title="Edit" (click)="openEditTask(task)"><tp-icon name="edit" [size]="14"></tp-icon></button>
                     <button class="btn-icon btn-icon-danger" *ngIf="perms.canDeleteTask" title="Delete" (click)="confirmDelete(task.id)"><tp-icon name="trash" [size]="14"></tp-icon></button>
                   </td>
@@ -930,6 +930,7 @@
             [canEdit]="perms.canEditTask"
             [canDelete]="perms.canDeleteTask"
             [visibleStatuses]="visibleKanbanStatuses"
+            (viewTask)="openEditTask($event)"
             (editTask)="openEditTask($event)"
             (deleteTask)="confirmDelete($event)"
             (moveTask)="onKanbanMove($event)"

@@ -20,6 +20,7 @@ export interface CreateTenantRequest {
   adminUsername: string;
   adminName: string;
   adminEmail: string;
+  adminPassword?: string;
 }
 import { User, CreateUserRequest, UpdateProfileRequest } from '../models/user.model';
 import { AppNotification } from '../models/notification.model';

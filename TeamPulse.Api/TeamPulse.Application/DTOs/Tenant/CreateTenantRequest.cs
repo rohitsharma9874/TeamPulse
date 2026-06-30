@@ -9,5 +9,6 @@ namespace TeamPulse.Application.DTOs.Tenant
         string? LogoUrl,
         string AdminUsername,
         string AdminName,
-        [Required][EmailAddress] string AdminEmail);
+        [Required][EmailAddress] string AdminEmail,
+        string? AdminPassword); // optional — if omitted a random password is set and a welcome email is sent
 }

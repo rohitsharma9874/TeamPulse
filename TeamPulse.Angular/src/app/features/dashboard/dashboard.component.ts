@@ -191,7 +191,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       { key: 'overview', label: 'Dashboard', icon: 'grid', subItems: [
         { tab: 'pulse',    label: 'Pulse',     icon: 'activity' },
         { tab: 'workload', label: 'Workload',  icon: 'users' },
-        ...(p.canViewBilling ? [{ tab: 'finances', label: 'Finances', icon: 'dollar-sign' }] : []),
+        ...(p.canViewBilling ? [{ tab: 'finances', label: 'Finances', icon: 'indian-rupee' }] : []),
         { tab: 'urgent',   label: 'Urgent',    icon: 'alert-circle' },
       ]},
       { key: 'tasks', label: 'Tasks', icon: 'check-square', subItems: [
@@ -696,7 +696,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // ── Health KPIs ───────────────────────────────────────────────────────────
     this.cachedHealthKPIs = [
       { label: 'Completion Rate',     value: totalTasks > 0 ? Math.round((completeCt / totalTasks) * 100) : 100,                                    icon: 'check-circle', color: '#10b981' },
-      { label: 'Billing Recovery',    value: this._billedTotal > 0 ? Math.round((this._collectedTotal / this._billedTotal) * 100) : 100,             icon: 'dollar-sign',  color: '#3b82f6' },
+      { label: 'Billing Recovery',    value: this._billedTotal > 0 ? Math.round((this._collectedTotal / this._billedTotal) * 100) : 100,             icon: 'indian-rupee', color: '#3b82f6' },
       { label: 'Zero-Overdue Target', value: pendingCt > 0 ? Math.round((1 - this.overdueCount / pendingCt) * 100) : 100,                           icon: 'clock',        color: '#f59e0b' },
     ];
 

@@ -25,16 +25,15 @@ export class PlatformAdminComponent implements OnInit {
     id:            ['', [Validators.required, Validators.pattern(/^[A-Z0-9]{3,10}$/)]],
     name:          ['', Validators.required],
     tagline:       ['', Validators.required],
-    logoUrl:       [''],
     adminUsername: ['', Validators.required],
     adminName:     ['', Validators.required],
     adminEmail:    ['', [Validators.required, Validators.email]],
+    adminPassword: [''],
   });
 
   editForm = this.fb.nonNullable.group({
     name:    ['', Validators.required],
     tagline: ['', Validators.required],
-    logoUrl: [''],
   });
 
   constructor(
@@ -66,7 +65,7 @@ export class PlatformAdminComponent implements OnInit {
 
   openEdit(tenant: TenantRow): void {
     this.editingTenant = tenant;
-    this.editForm.patchValue({ name: tenant.name, tagline: tenant.tagline, logoUrl: tenant.logoUrl ?? '' });
+    this.editForm.patchValue({ name: tenant.name, tagline: tenant.tagline });
     this.error = '';
     this.showForm = true;
   }
@@ -86,10 +85,11 @@ export class PlatformAdminComponent implements OnInit {
       id:            v.id.toUpperCase(),
       name:          v.name,
       tagline:       v.tagline,
-      logoUrl:       v.logoUrl || null,
+      logoUrl:       null,
       adminUsername: v.adminUsername,
       adminName:     v.adminName,
       adminEmail:    v.adminEmail,
+      adminPassword: v.adminPassword || undefined,
     };
     this.api.createTenant(req).subscribe({
       next: tenant => {
@@ -109,7 +109,7 @@ export class PlatformAdminComponent implements OnInit {
     this.saving = true;
     this.error = '';
     const v = this.editForm.getRawValue();
-    this.api.updateTenant(this.editingTenant.id, { name: v.name, tagline: v.tagline, logoUrl: v.logoUrl || null }).subscribe({
+    this.api.updateTenant(this.editingTenant.id, { name: v.name, tagline: v.tagline, logoUrl: null }).subscribe({
       next: updated => {
         this.tenants = this.tenants.map(t => t.id === updated.id ? { ...t, ...updated } : t);
         this.saving = false;
