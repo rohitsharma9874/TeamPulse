@@ -32,8 +32,8 @@ namespace TeamPulse.Infrastructure.Data.Configurations
             builder.Property(u => u.CreatedBy).HasMaxLength(256);
             builder.Property(u => u.ModifiedBy).HasMaxLength(256);
 
-            builder.HasIndex(u => new { u.Username, u.CompanyId }).IsUnique();
-            builder.HasIndex(u => new { u.Email, u.CompanyId }).IsUnique();
+            builder.HasIndex(u => new { u.Username, u.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+            builder.HasIndex(u => new { u.Email, u.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
             builder.HasIndex(u => u.CompanyId);
 
             builder.HasMany(u => u.AssignedTasks)
