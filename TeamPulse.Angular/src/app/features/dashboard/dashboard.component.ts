@@ -486,7 +486,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       if (!this.boardMonth) return this._visibleTasks;
       const [year, month] = this.boardMonth.split('-').map(Number);
       return this._visibleTasks.filter(t => {
-        if (!t.deadline) return true;
+        if (!t.deadline) return false; // exclude tasks with no deadline from month-filtered view
         const d = new Date(t.deadline);
         return d.getFullYear() === year && d.getMonth() + 1 === month;
       });
@@ -496,19 +496,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (to) to.setHours(23, 59, 59, 999);
     if (!from && !to) return this._visibleTasks;
     return this._visibleTasks.filter(t => {
-      if (!t.deadline) return true;
+      if (!t.deadline) return false; // exclude tasks with no deadline from range-filtered view
       const d = new Date(t.deadline);
       return (!from || d >= from) && (!to || d <= to);
     });
   }
 
-  // Stage counts for the clickable flow-node cards (reflect active month/range filter)
-  get boardCountNew():        number { return this.filteredCountTasks.filter(t => ['new','open','pending'].includes(t.status)).length; }
-  get boardCountRefinement(): number { return this.filteredCountTasks.filter(t => ['refinement','requirement-gathering'].includes(t.status)).length; }
-  get boardCountReady():      number { return this.filteredCountTasks.filter(t => ['ready','awaiting-client'].includes(t.status)).length; }
-  get boardCountInProgress(): number { return this.filteredCountTasks.filter(t => t.status === 'in-progress').length; }
-  get boardCountReview():     number { return this.filteredCountTasks.filter(t => ['review','under-review'].includes(t.status)).length; }
-  get boardCountComplete():   number { return this.filteredCountTasks.filter(t => ['complete','completed'].includes(t.status)).length; }
+  // Stage counts for the clickable flow-node cards — exclude subtasks so counts match the board
+  get boardCountNew():        number { return this.filteredCountTasks.filter(t => !t.parentTaskId && ['new','open','pending'].includes(t.status)).length; }
+  get boardCountRefinement(): number { return this.filteredCountTasks.filter(t => !t.parentTaskId && ['refinement','requirement-gathering'].includes(t.status)).length; }
+  get boardCountReady():      number { return this.filteredCountTasks.filter(t => !t.parentTaskId && ['ready','awaiting-client'].includes(t.status)).length; }
+  get boardCountInProgress(): number { return this.filteredCountTasks.filter(t => !t.parentTaskId && t.status === 'in-progress').length; }
+  get boardCountReview():     number { return this.filteredCountTasks.filter(t => !t.parentTaskId && ['review','under-review'].includes(t.status)).length; }
+  get boardCountComplete():   number { return this.filteredCountTasks.filter(t => !t.parentTaskId && ['complete','completed'].includes(t.status)).length; }
 
   /** filteredBoardTasks: filteredCountTasks + optional stage filter (drives the kanban columns) */
   get filteredBoardTasks(): Task[] {
