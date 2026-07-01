@@ -21,26 +21,31 @@ namespace TeamPulse.Api.Controllers
         private static readonly HashSet<string> AllTaskRoles = new(StringComparer.OrdinalIgnoreCase)
         {
             "owner", "admin", "sub-admin",
-            "senior-manager", "managing-partner", "partner",
+            "senior-manager", "senior_manager_audit", "senior_manager_compliance",
+            "managing-partner", "partner",
         };
 
         // Roles that can see all tasks in their own department
         private static readonly HashSet<string> ManagerRoles = new(StringComparer.OrdinalIgnoreCase)
         {
             "manager", "audit-manager", "tax-manager", "compliance-manager",
+            "manager_audit", "manager_audit_accounts", "manager_compliance_legal",
         };
 
         private static readonly HashSet<string> WriteTaskRoles = new(StringComparer.OrdinalIgnoreCase)
         {
             "owner", "admin", "sub-admin",
-            "senior-manager", "managing-partner", "partner",
+            "senior-manager", "senior_manager_audit", "senior_manager_compliance",
+            "managing-partner", "partner",
             "manager", "audit-manager", "tax-manager", "compliance-manager",
+            "manager_audit", "manager_audit_accounts", "manager_compliance_legal",
         };
 
         private static readonly HashSet<string> DeleteTaskRoles = new(StringComparer.OrdinalIgnoreCase)
         {
             "owner", "admin", "sub-admin",
-            "senior-manager", "managing-partner", "partner"
+            "senior-manager", "senior_manager_audit", "senior_manager_compliance",
+            "managing-partner", "partner",
         };
 
         public TaskController(ITaskRepository taskRepo, TeamPulseDbContext db)
